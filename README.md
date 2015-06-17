@@ -1,6 +1,6 @@
 # Drone.js 
 
-*****The drone library**
+**The drone library**
 
 ## Documentation 
 
