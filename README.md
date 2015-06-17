@@ -2,11 +2,18 @@
 
 **The drone library**
 
-## Documentation 
+## Introduction
 
-Drone.js is a library that communicate with a drone through 
-[a bridge](https://github.com/openflylab/bridge). It provides a low
-level api that emits UAV objects that the bridge forward to the drone.
+Drone.js is a library that allows to control a drone with Javascript.
+It abstracts handling UAV objects that the drone understands by
+providing a simple api. 
+
+
+```javascript
+  var drone = require('drone');
+```
+
+## Documentation 
 
 ## Contributing 
 
