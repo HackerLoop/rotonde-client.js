@@ -42,6 +42,23 @@ Drone.prototype.sendMessage = function(name, requestType, data) {
   }));
 }
 
+Drone.prototype.setupTelemetry = function() { 
+  // this handshake is a bit more specific than the others
+  // as it involves FlightTelemetryStats and GCSTelemetryStats. 
+  
+  // send GCSTelemetryStats HandshakeReq
+  // recv FlightTelemetryStats 
+  // if disconnected
+  //  send GCSTelemetryStats HandshakeReq # restart
+  // elsif HandshakeAck || Connected
+  //  send GCSTelemetryStats Connected
+  //
+  // heartbeat(period: 5) {
+  //  send FlightStatus       // TODO wtf
+  //  send ActuatorCommand    // TODO wtf
+  // }
+}
+
 Drone.prototype.debug = function(o) {
   if (this.options.debug) {
     console.log(o);
