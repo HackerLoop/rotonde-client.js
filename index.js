@@ -59,5 +59,18 @@ Drone.prototype.REQUEST_TYPES = {
 $(function() {
   var drone = new Drone("ws://192.168.254.135:3000/uav", {debug:true});
   drone.connect();
+
   window.drone = drone; // debug purpose
+  
+  setTimeout(function() { 
+    var elements = _.map(_.keys(drone.uavObjectDefinitionsByName), function(e) {
+      var s = "<li>";
+      s += e
+      s += "</li>";
+
+      return s;
+    });
+
+    $('#uav-definitions').html("<ul>" + elements + "</ul>");
+  }, 3000);
 });
