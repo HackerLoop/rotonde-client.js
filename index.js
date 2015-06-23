@@ -24,6 +24,8 @@ Drone.prototype.messageHandler = function(event) {
     this.uavObjectDefinitionsByName = _.indexBy(data, 'name');
 
     this.debug(this.uavObjectDefinitionsByName);
+
+    return;
   }
 }
 
@@ -51,6 +53,7 @@ Drone.prototype.setupTelemetry = function() {
   // if disconnected
   //  send GCSTelemetryStats HandshakeReq # restart
   // elsif HandshakeAck || Connected
+  //github.com/openflylab/drone.js/commit/9b0086
   //  send GCSTelemetryStats Connected
   //
   // heartbeat(period: 5) {
