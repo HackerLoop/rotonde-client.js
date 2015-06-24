@@ -1,5 +1,6 @@
 var Drone = function(url, options) {
   this.url = url;
+
   this.uavObjectDefinitions = {};
   this.options = {
     debug: false
@@ -16,18 +17,29 @@ Drone.prototype.connect = function() {
 }
 
 Drone.prototype.messageHandler = function(event) {
-  var data = JSON.parse(event.data);
+  var uavObject = JSON.parse(event.data);
 
   // First message is always an array of objects definitions
-  if (_.isEmpty(this.uavObjectDefinitions)) {
-    this.uavObjectDefinitionsById = _.indexBy(data, 'id');
-    this.uavObjectDefinitionsByName = _.indexBy(data, 'name');
+  if (_.isEmpty(this.uavObjectDefinitionsByName)) {
+    this.uavObjectDefinitionsById = _.indexBy(uavObject, 'id');
+    this.uavObjectDefinitionsByName = _.indexBy(uavObject, 'name');
 
-    this.debug(this.uavObjectDefinitionsByName);
+    this.setupTelemetry();
 
     return;
   }
+
+
+  // Second seems to be the Telemetry Stats
+  if (uavObject.Name === 'FlightTelemetryStats') {
+		this.debug('got FlightTelemetryStats.Status = ' + uavObject.Data.status);
+
+    if (uavObject.Data.Status === 'Disconnected') { // HINT: Create an UavObject class ?
+      
+    }
+  }
 }
+
 
 Drone.prototype.sendMessage = function(name, requestType, data) {
   var encodedRequestType  = this.REQUEST_TYPES[requestType];
@@ -38,13 +50,24 @@ Drone.prototype.sendMessage = function(name, requestType, data) {
   }
 
   this.socket.send(JSON.stringify({
-    id: uavObjectDefinition.id,
-    cmd: encodedRequestType, 
-    data: data  
+    ObjectId: uavObjectDefinition.id,
+    Cmd: encodedRequestType, 
+    Data: data 
   }));
 }
 
 Drone.prototype.setupTelemetry = function() { 
+  this.debug("Handshaking Telemetry stats");
+
+  this.sendMessage('GCSTelemetryStats', 'object', {
+			Status: 'HandshakeReq',
+			TxDataRate: 0,
+			RxDataRate: 0,
+			TxFailures: 0,
+			RxFailures: 0,
+			TxRetries: 0
+  });
+
   // this handshake is a bit more specific than the others
   // as it involves FlightTelemetryStats and GCSTelemetryStats. 
   
