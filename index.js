@@ -32,19 +32,12 @@ Drone.prototype.messageHandler = function(event) {
     return;
   }
 
-  if (this.handlers[uavObject.Name]) { 
+  // Dispatch events to their callbacks
+  if (this.handlers[uavObject.Name]) {
     this.handlers[uavObject.Name](uavObject);
   }
 
   return;
-  // Second seems to be the Telemetry Stats
-  if (uavObject.Name === 'FlightTelemetryStats') {
-		this.debug('got FlightTelemetryStats.Status = ' + uavObject.Data.Status);
-
-    if (uavObject.Data.Status === 'Disconnected') { // HINT: Create an UavObject class ?
-      
-    }
-  }
 }
 
 
@@ -58,16 +51,16 @@ Drone.prototype.sendMessage = function(name, requestType, data) {
 
   this.socket.send(JSON.stringify({
     ObjectId: uavObjectDefinition.id,
-    Cmd: encodedRequestType, 
-    Data: data 
+    Cmd: encodedRequestType,
+    Data: data
   }));
 }
 
-Drone.prototype.setupTelemetry = function() { 
+Drone.prototype.setupTelemetry = function() {
   this.debug("Handshaking Telemetry stats");
 
   var that = this;
-  var handshake = function(status) { 
+  var handshake = function(status) {
     that.sendMessage('GCSTelemetryStats', 'object', {
         Status: status,
         TxDataRate: 0,
@@ -103,10 +96,10 @@ Drone.prototype.setupTelemetry = function() {
   };
 
   // this handshake is a bit more specific than the others
-  // as it involves FlightTelemetryStats and GCSTelemetryStats. 
-  
+  // as it involves FlightTelemetryStats and GCSTelemetryStats.
+
   // send GCSTelemetryStats HandshakeReq
-  // recv FlightTelemetryStats 
+  // recv FlightTelemetryStats
   // if disconnected
   //  send GCSTelemetryStats HandshakeReq # restart
   // elsif HandshakeAck || Connected
@@ -127,7 +120,7 @@ Drone.prototype.debug = function(o) {
 
 Drone.prototype.REQUEST_TYPES = {
   'object': 0,
-  'objectRequest': 1, 
+  'objectRequest': 1,
   'objectAck': 2,
   'ack': 3,
   'nack': 4
@@ -138,8 +131,8 @@ $(function() {
   drone.connect();
 
   window.drone = drone; // debug purpose
-  
-  setTimeout(function() { 
+
+  setTimeout(function() {
     var elements = _.map(_.keys(drone.uavObjectDefinitionsByName), function(e) {
       var s = "<li>";
       s += e
