@@ -6,6 +6,9 @@ var Drone = function(url, options) {
     debug: false
   }
 
+  // Handlers that will be attached to UavObjects
+  this.handlers = {};
+
   _.extend(this.options, options);
 }
 
@@ -29,10 +32,14 @@ Drone.prototype.messageHandler = function(event) {
     return;
   }
 
+  if (this.handlers[uavObject.Name]) { 
+    this.handlers[uavObject.Name](uavObject);
+  }
 
+  return;
   // Second seems to be the Telemetry Stats
   if (uavObject.Name === 'FlightTelemetryStats') {
-		this.debug('got FlightTelemetryStats.Status = ' + uavObject.Data.status);
+		this.debug('got FlightTelemetryStats.Status = ' + uavObject.Data.Status);
 
     if (uavObject.Data.Status === 'Disconnected') { // HINT: Create an UavObject class ?
       
@@ -46,7 +53,7 @@ Drone.prototype.sendMessage = function(name, requestType, data) {
   var uavObjectDefinition = this.uavObjectDefinitionsByName[name];
 
   if (_.isUndefined(uavObjectDefinition)) {
-    throw "Unkown UAVObject Exception";
+    throw "Unknown UAVObject Exception";
   }
 
   this.socket.send(JSON.stringify({
@@ -59,14 +66,41 @@ Drone.prototype.sendMessage = function(name, requestType, data) {
 Drone.prototype.setupTelemetry = function() { 
   this.debug("Handshaking Telemetry stats");
 
-  this.sendMessage('GCSTelemetryStats', 'object', {
-			Status: 'HandshakeReq',
-			TxDataRate: 0,
-			RxDataRate: 0,
-			TxFailures: 0,
-			RxFailures: 0,
-			TxRetries: 0
-  });
+  var that = this;
+  var handshake = function(status) { 
+    that.sendMessage('GCSTelemetryStats', 'object', {
+        Status: status,
+        TxDataRate: 0,
+        RxDataRate: 0,
+        TxFailures: 0,
+        RxFailures: 0,
+        TxRetries: 0
+    });
+  };
+
+  handshake('HandshakeReq');
+
+  var debug = _.bind(this.debug, this);
+  // TODO is this really an uavobject ? or is this just a response ?
+  this.handlers['FlightTelemetryStats'] = function(uavObjectResponse) {
+    switch (uavObjectResponse.Data.Status) {
+      case 'HandshakeAck':
+        debug('Received HandshakeAck, sending Connected');
+        handshake('Connected');
+        break;
+      case 'Disconnected':
+        debug('Received Disconnected, sending HandshakeReq');
+        handshake('HandshakeReq'); // start over
+        break;
+      case 'Connected':
+        debug('Received Connected, sending HandshakeConnected');
+        handshake('Connected');    // just in case (TODO is that really necessary?)
+        break;
+      default:
+        debug('Received unknown data\n' + uavObjectResponse.Data.Status)
+        throw("Unknown UavObjectResponse Status");
+    }
+  };
 
   // this handshake is a bit more specific than the others
   // as it involves FlightTelemetryStats and GCSTelemetryStats. 
