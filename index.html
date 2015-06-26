@@ -8,11 +8,9 @@
     var drone = new Drone("ws://192.168.254.135:3000/uav", {debug:true});
 
     drone.ready = function() { 
-      drone.attachHandler('AttitudeSettings', function(uavObject) {
+      drone.readUav('AttitudeSettings', function(uavObject) {
         console.log(uavObject);
       });
-
-      drone.sendMessage('AttitudeSettings', 'objectRequest')
     }
 
     drone.connect();

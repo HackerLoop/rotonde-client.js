@@ -50,9 +50,9 @@
 
   Drone.prototype.readUav = function(name, callback) { 
     this.sendMessage(name, 'objectRequest', {});
-    this.attachHandler(name, callback);
+    this.attachOnce(name, callback);
   }
-
+  
   Drone.prototype.messageHandler = function(event) {
     var uavObject = JSON.parse(event.data);
 
@@ -61,6 +61,7 @@
       this.uavObjectDefinitionsById = _.indexBy(uavObject, 'id');
       this.uavObjectDefinitionsByName = _.indexBy(uavObject, 'name');
 
+      this.debug("Definitions loaded");
       this.onDefinitionsLoaded();
 
       return;
@@ -68,9 +69,21 @@
 
     // Dispatch events to their callbacks
     if (this.handlers[uavObject.Name]) {
-      this.handlers[uavObject.Name].forEach(function(element) {
-        element(uavObject);
-      });
+      var handlers = this.handlers[uavObject.Name]; 
+
+      for (var i = 0; i < handlers.length; i++) {
+        var callback  = handlers[i][0];
+        var callCount = handlers[i][1];
+
+        if (callCount > 0) {  // it's not a permanent callback
+          if (--handlers[i][1] == 0) { // did it consumed all its allowed calls ?
+            this.debug("Detaching consumed callback from" + uavObject.Name);
+            handlers.splice(i--, 1);
+          }
+        }
+
+        callback(uavObject);
+      }
     }
 
     return;
@@ -136,7 +149,7 @@
           debug('Received unknown data\n' + uavObjectResponse.Data.Status)
             throw("Unknown UavObjectResponse Status");
       }
-    });
+    }, -1);
 
     // this handshake is a bit more specific than the others
     // as it involves FlightTelemetryStats and GCSTelemetryStats.
@@ -156,17 +169,22 @@
   }
 
   // TODO use promises, ASAP
-  Drone.prototype.attachHandler = function(name, callback) {
+  Drone.prototype.attachHandler = function(name, callback, callCount) {
     if (_.contains(_.keys(this.uavObjectDefinitionsByName), name)) {
       if (this.handlers[name] === undefined) {
         this.handlers[name] = [];
       }
 
-      this.handlers[name].push(callback);
+      this.handlers[name].push([callback, callCount]);
     } else {
       throw("Unknown Uav handler");
     }
   }
+
+  Drone.prototype.attachOnce = function(name, callback) {
+    this.attachHandler(name, callback, 1);
+  }
+
 
   Drone.prototype.debug = function(o) {
     if (this.options.debug) {
