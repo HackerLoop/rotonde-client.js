@@ -6,6 +6,15 @@
 <script type="text/javascript">
   $(function() {
     var drone = new Drone("ws://192.168.254.135:3000/uav", {debug:true});
+
+    drone.ready = function() { 
+      drone.attachHandler('AttitudeSettings', function(uavObject) {
+        console.log(uavObject);
+      });
+
+      drone.sendMessage('AttitudeSettings', 'objectRequest')
+    }
+
     drone.connect();
 
     window.drone = drone; // debug purpose
