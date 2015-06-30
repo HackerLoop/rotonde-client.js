@@ -44,8 +44,12 @@
       this.setupTelemetry();
     }, this);
 
-
+    this.connected = true
     return;
+  }
+
+  Drone.prototype.isConnected = function() {
+    return this.connected;
   }
 
   Drone.prototype.readUav = function(name, callback) { 
