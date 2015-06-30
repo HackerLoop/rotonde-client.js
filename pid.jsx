@@ -20,13 +20,11 @@ var UavBox = React.createClass({
   render: function() {
     return (
       <div className="uav-box">
-        <ValueBox name="Pitch"  value={this.state.uav["Pitch"]} />
-        <ValueBox name="Roll"   value={this.state.uav["Roll"]} />
-        <ValueBox name="Yaw"    value={this.state.uav["Yaw"]} />
-        <ValueBox name="q1"     value={this.state.uav["q1"]} />
-        <ValueBox name="q2"     value={this.state.uav["q2"]} />
-        <ValueBox name="q3"     value={this.state.uav["q3"]} />
-        <ValueBox name="q4"     value={this.state.uav["q4"]} />
+        {Object.keys(this.state.uav).map(function(key) {
+          return (
+            <ValueBox name={key}  value={this.state.uav[key]} />
+          );
+        }.bind(this))}
       </div>
     )
   }
