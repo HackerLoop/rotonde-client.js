@@ -1,0 +1,31 @@
+<html>
+<head>
+<script src="bower_components/jquery/dist/jquery.min.js"></script>
+<script src="bower_components/underscore/underscore-min.js"></script>
+<script src="bower_components/d3/d3.min.js"></script>
+<script src="bower_components/epoch/epoch.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/0.13.3/react.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/0.13.3/JSXTransformer.js"></script>
+
+<script type="text/jsx" src="pid.jsx"></script>
+<link rel="stylesheet" type="text/css" href="bower_components/epoch/epoch.min.css">
+
+<script src="index.js"></script>
+<script type="text/javascript">
+  $(function() {
+    var drone = new Drone("ws://192.168.254.135:3000/uav", {debug:true});
+    window.drone = drone; // debug purpose
+  });
+</script>
+</head>
+
+<body>
+  <div>
+    <h1>PID Visualization</h1>
+    <div id="app">
+
+    </div>
+  </div>
+</body>
+
+</html>
