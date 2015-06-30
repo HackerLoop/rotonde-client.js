@@ -1,21 +1,45 @@
 <html>
 <head>
-<script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
-<script src="http://underscorejs.org/underscore-min.js"></script>
+<script src="bower_components/jquery/dist/jquery.min.js"></script>
+<script src="bower_components/underscore/underscore-min.js"></script>
+<script src="bower_components/d3/d3.min.js"></script>
+<script src="bower_components/epoch/epoch.min.js"></script>
+<link rel="stylesheet" type="text/css" href="bower_components/epoch/epoch.min.css">
+
 <script src="index.js"></script>
 <script type="text/javascript">
   $(function() {
     var drone = new Drone("ws://192.168.254.135:3000/uav", {debug:true});
+    window.drone = drone; // debug purpose
+
+    var time = parseInt((new Date()).getTime() / 1000);
+    var data = [{label: "Pitch", values: [{time: time, y: 0}]}];
+
+    var graph = $('#line').epoch({
+      type: 'time.line',
+      //pixelRatio: 1,
+      data: data,
+      axes: ['left', 'bottom', 'right']
+    });
 
     drone.ready = function() { 
       drone.readUav('AttitudeSettings', function(uavObject) {
         console.log(uavObject);
       });
+
+      drone.attachHandler('AttitudeActual', function(uavObject) {
+        console.log("graphing")
+        var timestamp  = parseInt((new Date()).getTime() / 1000);
+        var value      = uavObject.Data.Pitch;
+        console.log(value);
+        console.log(timestamp);
+
+        var x = {time: timestamp, y: value*100} 
+        graph.push([x]);
+      }, -1);
     }
 
     drone.connect();
-
-    window.drone = drone; // debug purpose
 
     setTimeout(function() {
       var elements = _.map(_.keys(drone.uavObjectDefinitionsByName), function(e) {
@@ -34,6 +58,8 @@
 
 <body>
   <div>
+    <h1>Graph</h1>
+    <div id="line" class="epoch" style="height: 200px;"></div>
     <h1>UavObjectDefinitions</h1>
     <div id="uav-definitions">Loading...</div>
   </div>
