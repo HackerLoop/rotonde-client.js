@@ -15,7 +15,8 @@
 
   var Drone = function(url, options) {
     this.url = url;
-    this.telemetryReady = false
+    this.telemetryReady = false;
+    this.readyCallbacks = [];
 
     this.options = {
       debug: false
@@ -145,8 +146,9 @@
           if (!that.telemetryReady) {
             that.telemetryReady = true;
 
-            if (that.ready)
-              that.ready();
+            that.readyCallbacks.forEach(function(callback) {
+              callback();
+            });
           }
           break;
         default:
@@ -174,6 +176,9 @@
 
   // TODO use promises, ASAP
   Drone.prototype.attachHandler = function(name, callback, callCount) {
+    if (callCount == undefined)
+      callCount = -1;
+
     if (_.contains(_.keys(this.uavObjectDefinitionsByName), name)) {
       if (this.handlers[name] === undefined) {
         this.handlers[name] = [];
@@ -189,6 +194,9 @@
     this.attachHandler(name, callback, 1);
   }
 
+  Drone.prototype.onReady = function(callback) {
+    this.readyCallbacks.push(callback);
+  }
 
   Drone.prototype.debug = function(o) {
     if (this.options.debug) {
