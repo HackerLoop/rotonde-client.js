@@ -10,6 +10,7 @@ var StatsBox = React.createClass({
       console.log("connecting")
       this.drone.connect(); 
     }
+
   }, 
 
   render: function() {
@@ -32,10 +33,15 @@ var UavBox = React.createClass({
 
   componentDidMount: function() {
     console.log("Mounted: " + this.props.uav)
+      if (this.props.uav == "StabilizationSettings") {
+        this.props.drone.onReady(function() {
+          this.props.drone.sendMessage("StabilizationSettings", "objectRequest", {})
+        }.bind(this));
+      }
+
     this.props.drone.onReady(function() { 
       this.props.drone.attachHandler(this.props.uav, function(uavObject) {
-        console.log("received from:" + this.props.uav)
-        this.setState({uav: uavObject.Data});
+        this.setState({uav: uavObject.data});
       }.bind(this))
     }.bind(this));
       
@@ -68,7 +74,7 @@ var ValueBox = React.createClass({
 });
 
 
-var uavs = ["AttitudeActual", "SystemStats"];
+var uavs = ["AttitudeActual", "SystemStats", "StabilizationSettings"];
 React.render(
   <StatsBox drone={drone} uavs={uavs} />,
   $('#app')[0]

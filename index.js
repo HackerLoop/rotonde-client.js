@@ -63,7 +63,7 @@
 
     // First message is always an array of objects definitions
     if (_.isEmpty(this.uavObjectDefinitionsByName)) {
-      this.uavObjectDefinitionsById = _.indexBy(uavObject, 'id');
+      this.uavObjectDefinitionsById = _.indexBy(uavObject, 'objectId');
       this.uavObjectDefinitionsByName = _.indexBy(uavObject, 'name');
 
       this.debug("Definitions loaded");
@@ -73,8 +73,8 @@
     }
 
     // Dispatch events to their callbacks
-    if (this.handlers[uavObject.Name]) {
-      var handlers = this.handlers[uavObject.Name]; 
+    if (this.handlers[uavObject.name]) {
+      var handlers = this.handlers[uavObject.name]; 
 
       for (var i = 0; i < handlers.length; i++) {
         var callback  = handlers[i][0];
@@ -103,9 +103,9 @@
     }
 
     this.socket.send(JSON.stringify({
-      ObjectId: uavObjectDefinition.id,
-      Cmd: encodedRequestType,
-      Data: data
+      objectId: uavObjectDefinition.id,
+      cmd: encodedRequestType,
+      data: data
     }));
   }
 
@@ -130,7 +130,7 @@
     // TODO is this really an uavobject ? or is this just a response ?
 
     this.attachHandler('FlightTelemetryStats', function(uavObjectResponse) {
-      switch (uavObjectResponse.Data.Status) {
+      switch (uavObjectResponse.data.Status) {
         case 'HandshakeAck':
           debug('Received HandshakeAck, sending Connected');
           handshake('Connected');
@@ -152,7 +152,7 @@
           }
           break;
         default:
-          debug('Received unknown data\n' + uavObjectResponse.Data.Status)
+          debug('Received unknown data\n' + uavObjectResponse.data.Status)
             throw("Unknown UavObjectResponse Status");
       }
     }, -1);

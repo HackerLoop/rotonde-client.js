@@ -22,21 +22,21 @@
       axes: ['left', 'bottom', 'right']
     });
 
-    drone.ready = function() { 
+    drone.onReady(function() { 
       drone.readUav('AttitudeSettings', function(uavObject) {
         console.log(uavObject);
       });
 
       drone.attachHandler('AttitudeActual', function(uavObject) {
         var timestamp  = parseInt((new Date()).getTime() / 1000);
-        var value      = uavObject.Data.Pitch;
+        var value      = uavObject.data.Pitch;
         console.log(value);
         console.log(timestamp);
 
         var x = {time: timestamp, y: value} 
         graph.push([x]);
       }, -1);
-    }
+    });
 
     drone.connect();
 
