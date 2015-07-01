@@ -28,13 +28,12 @@
       });
 
       drone.attachHandler('AttitudeActual', function(uavObject) {
-        console.log("graphing")
         var timestamp  = parseInt((new Date()).getTime() / 1000);
         var value      = uavObject.Data.Pitch;
         console.log(value);
         console.log(timestamp);
 
-        var x = {time: timestamp, y: value*100} 
+        var x = {time: timestamp, y: value} 
         graph.push([x]);
       }, -1);
     }
