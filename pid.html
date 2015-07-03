@@ -10,10 +10,10 @@
 <script type="text/jsx" src="pid.jsx"></script>
 <link rel="stylesheet" type="text/css" href="bower_components/epoch/epoch.min.css">
 
-<script src="index.js"></script>
+<script src="dist/flylab-drone.js"></script>
 <script type="text/javascript">
   $(function() {
-    var drone = new Drone("ws://192.168.254.135:3000/uav", {debug:true});
+    var drone = new Drone("ws://127.0.01:5000/uav", {debug:true});
     window.drone = drone; // debug purpose
   });
 </script>
