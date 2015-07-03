@@ -1,0 +1,21 @@
+{
+  "name": "Flylab-Drone",
+  "version": "0.0.1",
+  "authors": [
+    "Jean-Hadrien Chabran <jh@chabran.fr>"
+  ],
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "jquery": "~2.1.4",
+    "underscore": "~1.8.3",
+    "d3": "~3.5.5",
+    "epoch": "~0.6.0"
+  }
+}
