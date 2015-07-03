@@ -32,10 +32,14 @@ gulp watch
 Remember to launch the bridge aside with 
 
 ```
-./bridge -port 5000 path-to-definItions/
+./bridge -port 5000 path-to-definitions/
 ```
 
-And open your browser on `http://127.0.0.1:3000` or `http://127.0.0.1:3000/pid.html`.
+And open your browser on `http://127.0.0.1:3000/tools` or `http://127.0.0.1:3000/tools/pid.html`.
 
 ## Contributing 
 
+
+![](https://d2v4zi8pl64nxt.cloudfront.net/1362775331_b8c6b6e89781c85fee638dffe341ff64.jpg)
+
+Everything is subject to change at this point !
