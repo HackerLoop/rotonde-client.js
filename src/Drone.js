@@ -20,7 +20,7 @@ export class Drone {
 
   connect() {
     this.socket = new WebSocket(this.url);
-    this.socket.onmessage = _.bind(this.messageHandler, this);
+    this.socket.onmessage = _.bind(this.handleMessage, this);
 
     this.onDefinitionsLoaded = _.bind(function() {
       this.setupTelemetry();
@@ -39,7 +39,7 @@ export class Drone {
     this.attachOnce(name, callback);
   }
 
-  messageHandler(event) {
+  handleMessage(event) {
     var uavObject = JSON.parse(event.data);
 
     // First message is always an array of objects definitions
