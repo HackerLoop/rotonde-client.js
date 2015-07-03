@@ -63,7 +63,7 @@ export class Drone {
 
         if (callCount > 0) {  // it's not a permanent callback
           if (--handlers[i][1] == 0) { // did it consumed all its allowed calls ?
-            this.debug("Detaching consumed callback from" + uavObject.Name);
+            this.debug("Detaching consumed callback from " + uavObject.name);
             handlers.splice(i--, 1);
           }
         }
@@ -183,6 +183,46 @@ export class Drone {
     if (this.options.debug) {
       console.log(o);
     }
+  }
+
+  defaultValues(uavObjectName) {
+    let definition = this.uavObjectDefinitionsByName[uavObjectName];
+    let values = {};
+
+    for(let field of definition.fields) {
+      let value, parse = undefined, undefined;
+
+      switch(field.type) {
+        case "uint8":
+          parse = function(string) { return parseInt(string); }
+          break;
+        case "int8":
+          parse = function(string) { return parseInt(string); }
+          break;
+        case "enum":
+          parse = function(string) { return string };
+          break;
+        case "float":
+          parse = function(string) { return parseFloat(string) };
+          break;
+        default:
+          throw("Unknown type:" + field.type);
+      }
+
+      if (field.elements > 1) {
+        value = {};
+        field.elementsName.forEach(function(name, index) {
+           let v = field.defaultValue.split(',')[index];
+           value[name] = parse(v);
+        });
+      } else {
+        value = parse(field.defaultValue);
+      }
+
+      values[field.name] = value;
+    }
+
+    return values;
   }
 }
 
