@@ -1,4 +1,6 @@
-import {Drone} from "./src/Drone.js"
+import {newClient} from "./src/Drone.js"
 
 // Is that the proper way to do it given index.js is made to be used only by the browser?
-window.Drone = Drone;
+window.Drone = {
+    newClient
+};

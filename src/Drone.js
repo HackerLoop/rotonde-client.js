@@ -35,7 +35,7 @@ export const newClient = function(url, options) {
             },
 
             getDefinitionByName(name) {
-                let definition = definitionByName[name];
+                let definition = definitionsByName[name];
 
                 if (_.isUndefined(definition)) {
                     console.log("Unknown Definition Exception -> " + name);
@@ -47,12 +47,12 @@ export const newClient = function(url, options) {
                 definitions.push(definition);
 
                 // update indexes
-                definitionById = _.indexBy(definitions, 'id');
-                definitionByName = _.indexBy(definitions, 'name');
+                definitionsById = _.indexBy(definitions, 'id');
+                definitionsByName = _.indexBy(definitions, 'name');
             },
 
             defaultObject(name) {
-                let definition = definitionsStore.getDefinitionByName(name);
+                let definition = definitionsByName(name);
                 if (!definition)return;
 
                 let values = {};
@@ -161,14 +161,18 @@ export const newClient = function(url, options) {
 
             attachOnce(name, callback) {
                 this.attachHandler(name, callback, 1);
+            },
+
+            each(func) {
+                _.forEach(handlers, func);
             }
         }
     };
 
-    // Abstracts a websocket to send as inner JSON protocol
-    let newDroneConnection = function(url, ready, onmessage) {
+    // Abstracts a websocket to send javascript objects as inner JSON protocol
+    let newDroneConnection = function(ready, onmessage) {
         let connected = false;
-        let socket = new WebSocket(this.url);
+        let socket = new WebSocket(url);
         socket.onmessage = onmessage;
 
         const PACKET_TYPES = {
@@ -179,12 +183,14 @@ export const newClient = function(url, options) {
             UNSUBSCRIBE: 'unsub'
         }
 
-        this.socket.onopen = function(event) {
+        socket.onopen = function(event) {
             connected = true;
             ready();
         };
 
         return {
+            PACKET_TYPES,
+
             isConnected() {
                 return connected;
             },
@@ -193,7 +199,7 @@ export const newClient = function(url, options) {
                 let definition = definitionsStore.getDefinitionByName(name);
                 if (!definition)return;
 
-                this.socket.send(JSON.stringify({
+                socket.send(JSON.stringify({
                     type: Drone.REQUEST_TYPES.UPDATE,
                     payload: {
                         objectId: definition.id,
@@ -207,7 +213,7 @@ export const newClient = function(url, options) {
                 let definition = definitionsStore.getDefinitionByName(name);
                 if (!definition)return;
 
-                this.socket.send(JSON.stringify({
+                socket.send(JSON.stringify({
                     type: Drone.REQUEST_TYPES.REQUEST,
                     payload: {
                         objectId: definition.id,
@@ -218,11 +224,11 @@ export const newClient = function(url, options) {
 
             // sendDefinition
 
-            sendSubsribe(name) {
+            sendSubscribe(name) {
                 let definition = definitionsStore.getDefinitionByName(name);
                 if (!definition)return;
 
-                this.socket.send(JSON.stringify({
+                socket.send(JSON.stringify({
                     type: Drone.REQUEST_TYPES.SUBSCRIBE,
                     payload: {
                         objectId: definition.id
@@ -230,11 +236,11 @@ export const newClient = function(url, options) {
                 }));
             },
 
-            sendUnsubsribe(name) {
+            sendUnsubscribe(name) {
                 let definition = definitionsStore.getDefinitionByName(name);
                 if (!definition)return;
 
-                this.socket.send(JSON.stringify({
+                socket.send(JSON.stringify({
                     type: Drone.REQUEST_TYPES.UNSUBSCRIBE,
                     payload: {
                         objectId: definition.id
@@ -244,14 +250,13 @@ export const newClient = function(url, options) {
         }
     }
 
-    let readyCallbacks = [];
-
     let client = {};
     client.updateHandlers = newHandlerManager(function(name) {
         client.connection.sendSubscribe(name);
     }, function(name) {
         client.connection.sendUnsubsribe(name);
     });
+    client.readyCallbacks = [];
     client.requestHandlers = newHandlerManager();
     client.definitionHandlers = newHandlerManager();
 
@@ -259,36 +264,36 @@ export const newClient = function(url, options) {
         definitionsStore,
 
         connect() {
-            this.connection = newDroneConnection(this.url, function() {
+            this.connection = newDroneConnection(function() {
                 _.forEach(this.readyCallbacks, function(readyCallback) {
                     readyCallback();
                 });
 
                 // send subsribe for all already registered updateHandlers
-                _.forEach(this.updateHandlers, function(name) {
+                this.updateHandlers.each(function(name) {
                     this.connection.sendSubscribe(name);
                 }.bind(this))
-            }, _.bind(this.handleMessage, this)); // benefits of _.bind over .bind() ? backward compat ?
+            }.bind(this), _.bind(this.handleMessage, this)); // benefits of _.bind over .bind() ? backward compat ?
         },
 
         handleMessage(event) {
             let packet = JSON.parse(event.data);
 
-            if (packet.type == Drone.REQUEST_TYPES.UPDATE) {
+            if (packet.type == this.connection.PACKET_TYPES.UPDATE) {
                 let update = packet.payload;
                 let objectId = update.objectId;
                 let definition = definitionsById[objectId];
                 if (definition) {
                     this.updateHandlers.callHandlers(definition.name, update);
                 }
-            } else if (packet.type == Drone.REQUEST_TYPES.REQUEST) {
+            } else if (packet.type == this.connection.PACKET_TYPES.REQUEST) {
                 let request = packet.payload;
                 let objectId = request.objectId;
                 let definition = definitionsById[objectId];
                 if (definition) {
                     this.requestHandlers.callHandlers(definition.name, request);
                 }
-            } else if (packet.type == Drone.REQUEST_TYPES.DEFINITION) {
+            } else if (packet.type == this.connection.PACKET_TYPES.DEFINITION) {
                 let definition = packet.payload;
                 definitionsStore.addDefinition(definition);
 
@@ -297,7 +302,7 @@ export const newClient = function(url, options) {
         },
 
         onReady(callback) {
-            if (this.connection.isConnected()) {
+            if (this.connection && this.connection.isConnected()) {
                 callback();
                 return;
             }
