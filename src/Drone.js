@@ -5,10 +5,10 @@ import _ from "lodash";
 // Client
 export const newClient = function(url, options) {
 
-    let options = {
+    let defaultOptions = {
         debug: false
     }
-    _.extend(options, options);
+    _.extend(options, defaultOptions);
 
     let debug = function(o) {
         if (options.debug) {
