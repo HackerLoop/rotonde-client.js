@@ -2,334 +2,308 @@
 
 import _ from "lodash";
 
-var debug = function(o) {
-    if (this.options.debug) {
-        console.log(o);
+// Client
+export const newClient = function(url, options) {
+
+    let options = {
+        debug: false
     }
-};
+    _.extend(options, options);
 
-// stores and indexes definitions
-var newDefinitionsStore = function() {
-    var definitions = [];
-
-    // definitions indexing
-    var definitionsById = {};
-    var definitionsByName = {};
-
-    return {
-        getDefinitionById: function(objectId) {
-            var definition = definitionsById[objectId];
-
-            if (_.isUndefined(definition)) {
-                console.log("Unknown Definition Exception -> " + objectId);
-            }
-            return definition;
-        },
-        getDefinitionByName: function(name) {
-            var definition = definitionByName[name];
-
-            if (_.isUndefined(definition)) {
-                console.log("Unknown Definition Exception -> " + name);
-            }
-            return definition;
-        },
-        addDefinition = function(definition) {
-            definitions.push(definition);
-
-            // update indexes
-            definitionById = _.indexBy(definitions, 'id');
-            definitionByName = _.indexBy(definitions, 'name');
-        }
-    }
-};
-
-// stores handlers by name, can auto remove handlers after n calls.
-// callbacks can be passed to this function, they will be called when a given name gets its first handler, or when a given name removed its last handler
-var newHandlerManager = function(firstAddedCallback, lastRemovedCallback) {
-
-    var handlers = {};
-
-    var detachHandlerAtIndex = function(name, index) {
-        var handlers =  this.handlers[name];
-        handlers.splice(index--, 1);
-        if (handlers.length == 0) {
-            this.handlers[name] = null;
-            lastRemovedCallback(name);
+    let debug = function(o) {
+        if (options.debug) {
+            console.log(o);
         }
     };
 
-    return {
-        callHandlers: function(name) {
-            // Dispatch events to their callbacks
-            if (handlers[uavObject.name]) {
-                var handlers = handlers[uavObject.name];
+    // stores and indexes definitions
+    let definitionsStore = (function() {
+        let definitions = [];
 
-                for (var i = 0; i < handlers.length; i++) {
-                    var callback  = handlers[i][0];
-                    var callCount = handlers[i][1];
+        // definitions indexing
+        let definitionsById = {};
+        let definitionsByName = {};
 
-                    if (callCount > 0) {  // it's not a permanent callback
-                        if (--handlers[i][1] == 0) { // did it consumed all its allowed calls ?
-                            debug("Detaching consumed callback from " + uavObject.name);
-                            detachHandlerAtIndex(uavObject.name, i);
-                        }
+        return {
+            getDefinitionById(objectId) {
+                let definition = definitionsById[objectId];
+
+                if (_.isUndefined(definition)) {
+                    console.log("Unknown Definition Exception -> " + objectId);
+                }
+                return definition;
+            },
+
+            getDefinitionByName(name) {
+                let definition = definitionByName[name];
+
+                if (_.isUndefined(definition)) {
+                    console.log("Unknown Definition Exception -> " + name);
+                }
+                return definition;
+            },
+
+            addDefinition(definition) {
+                definitions.push(definition);
+
+                // update indexes
+                definitionById = _.indexBy(definitions, 'id');
+                definitionByName = _.indexBy(definitions, 'name');
+            },
+
+            defaultObject(name) {
+                let definition = definitionsStore.getDefinitionByName(name);
+                if (!definition)return;
+
+                let values = {};
+
+                for(let field of definition.fields) {
+                    let value, parse = undefined, undefined;
+
+                    switch(field.type) {
+                        case "uint8":
+                        parse = function(string) { return parseInt(string); }
+                        break;
+                        case "int8":
+                        parse = function(string) { return parseInt(string); }
+                        break;
+                        case "enum":
+                        parse = function(string) { return string };
+                        break;
+                        case "float":
+                        parse = function(string) { return parseFloat(string) };
+                        break;
+                        default:
+                        throw("Unknown type:" + field.type);
                     }
-                    callback(uavObject);
+
+                    if (field.elements > 1) {
+                        value = {};
+                        field.elementsName.forEach(function(name, index) {
+                            let v = field.defaultValue.split(',')[index];
+                            value[name] = parse(v);
+                        });
+                    } else {
+                        value = parse(field.defaultValue);
+                    }
+
+                    values[field.name] = value;
                 }
+
+                return values;
             }
-        },
-
-        registeredNames: function() {
-            return _.keys(handlers);
-        },
-
-        // TODO use promises, ASAP
-        attachHandler: function(name, callback, callCount) {
-            if (callCount == undefined)
-            callCount = -1;
-
-            if (handlers[name] === undefined) {
-                handlers[name] = [];
-                firstAddedCallback(name);
-            }
-
-            this.handlers[name].push([callback, callCount]);
-        },
-
-        detachHandler: function(name, callback) {
-            var handlers =  this.handlers[name];
-            for (var i = 0; i < handlers.length; i++) {
-                var cb  = handlers[i][0];
-                if (cb == callback) {
-                    detachHandlerAtIndex(name, i);
-                }
-            }
-        },
-
-        attachOnce: function(name, callback) {
-            this.attachHandler(name, callback, 1);
         }
-    }
-};
+    })();
 
-var newDroneConnection = function(url, ready, onmessage) {
-    var connected = false;
-    var socket = new WebSocket(this.url);
-    socket.onmessage = onmessage;
+    // stores handlers by name, can auto remove handlers after n calls.
+    // callbacks can be passed to this function, they will be called when a given name gets its first handler,
+    // or when a given name removed its last handler
+    let newHandlerManager = function(firstAddedCallback, lastRemovedCallback) {
 
-    this.socket.onopen = function(event) {
-        connected = true;
-        ready();
+        let handlers = {};
+
+        let detachHandlerAtIndex = function(name, index) {
+            let handlers =  this.handlers[name];
+            handlers.splice(index--, 1);
+            if (handlers.length == 0) {
+                this.handlers[name] = null;
+                lastRemovedCallback(name);
+            }
+        };
+
+        return {
+            callHandlers(name, param) {
+                // Dispatch events to their callbacks
+                if (handlers[name]) {
+                    let handlers = handlers[name];
+
+                    for (let i = 0; i < handlers.length; i++) {
+                        let callback  = handlers[i][0];
+                        let callCount = handlers[i][1];
+
+                        if (callCount > 0) {  // it's not a permanent callback
+                            if (--handlers[i][1] == 0) { // did it consumed all its allowed calls ?
+                                debug("Detaching consumed callback from " + name);
+                                detachHandlerAtIndex(name, i);
+                            }
+                        }
+                        callback(param);
+                    }
+                }
+            },
+
+            registeredNames() {
+                return _.keys(handlers);
+            },
+
+            // TODO use promises, ASAP
+            attachHandler(name, callback, callCount) {
+                if (callCount == undefined)
+                callCount = -1;
+
+                if (handlers[name] === undefined) {
+                    handlers[name] = [];
+                    firstAddedCallback(name);
+                }
+
+                this.handlers[name].push([callback, callCount]);
+            },
+
+            detachHandler(name, callback) {
+                let handlers =  this.handlers[name];
+                for (let i = 0; i < handlers.length; i++) {
+                    let cb  = handlers[i][0];
+                    if (cb == callback) {
+                        detachHandlerAtIndex(name, i);
+                    }
+                }
+            },
+
+            attachOnce(name, callback) {
+                this.attachHandler(name, callback, 1);
+            }
+        }
     };
 
-    return {
-        isConnected: function() {
-            return connected;
-        },
+    // Abstracts a websocket to send as inner JSON protocol
+    let newDroneConnection = function(url, ready, onmessage) {
+        let connected = false;
+        let socket = new WebSocket(this.url);
+        socket.onmessage = onmessage;
 
-        sendUpdate: function(name, data) {
-            var definition = definitionsStore.getDefinitionByName(name);
-            if (!definition)return;
-
-            this.socket.send(JSON.stringify({
-                type: Drone.REQUEST_TYPES.UPDATE,
-                payload: {
-                    objectId: definition.id,
-                    instanceId: 0,
-                    data: data
-                }
-            }));
-        },
-
-        sendRequest: function(name, instanceId) {
-            var definition = definitionsStore.getDefinitionByName(name);
-            if (!definition)return;
-
-            this.socket.send(JSON.stringify({
-                type: Drone.REQUEST_TYPES.REQUEST,
-                payload: {
-                    objectId: definition.id,
-                    instanceId: instanceId
-                }
-            }));
-        },
-
-        // sendDefinition
-
-        sendSubsribe: function(name) {
-            var definition = definitionsStore.getDefinitionByName(name);
-            if (!definition)return;
-
-            this.socket.send(JSON.stringify({
-                type: Drone.REQUEST_TYPES.SUBSCRIBE,
-                payload: {
-                    objectId: definition.id
-                }
-            }));
-        },
-
-        sendUnsubsribe: function(name) {
-            var definition = definitionsStore.getDefinitionByName(name);
-            if (!definition)return;
-
-            this.socket.send(JSON.stringify({
-                type: Drone.REQUEST_TYPES.UNSUBSCRIBE,
-                payload: {
-                    objectId: definition.id
-                }
-            }));
+        const PACKET_TYPES = {
+            UPDATE: 'update',
+            REQUEST: 'req',
+            DEFINITION: 'def',
+            SUBSCRIBE: 'sub',
+            UNSUBSCRIBE: 'unsub'
         }
-    }
-}
 
-export class Drone {
-    constructor(url, options) {
-        this.url = url;
+        this.socket.onopen = function(event) {
+            connected = true;
+            ready();
+        };
 
-        this.readyCallbacks = [];
+        return {
+            isConnected() {
+                return connected;
+            },
 
-        this.options = {
-            debug: false
-        }
-        _.extend(this.options, options);
+            sendUpdate(name, data) {
+                let definition = definitionsStore.getDefinitionByName(name);
+                if (!definition)return;
 
-        this.updateHandlers = newHandlerManager(function(name) {
-            this.connection.sendSubscribe(name);
-        }, function(name) {
-            this.connection.sendUnsubsribe(name);
-        });
-        this.requestHandlers = newHandlerManager();
-        this.definitionHandlers = newHandlerManager();
-    }
+                this.socket.send(JSON.stringify({
+                    type: Drone.REQUEST_TYPES.UPDATE,
+                    payload: {
+                        objectId: definition.id,
+                        instanceId: 0,
+                        data: data
+                    }
+                }));
+            },
 
-    connect() {
-        this.connection = newDroneConnection(this.url, function() {
-            _.forEach(this.readyCallbacks, function(readyCallback) {
-                readyCallback();
-            });
+            sendRequest(name, instanceId) {
+                let definition = definitionsStore.getDefinitionByName(name);
+                if (!definition)return;
 
-            // send subsribe for all already registered updateHandlers
-            _.forEach(this.updateHandlers, function(name) {
-                this.connection.sendSubscribe(name);
-            })
-        }, _.bind(this.handleMessage, this));
-    }
+                this.socket.send(JSON.stringify({
+                    type: Drone.REQUEST_TYPES.REQUEST,
+                    payload: {
+                        objectId: definition.id,
+                        instanceId: instanceId
+                    }
+                }));
+            },
 
-    isConnected() {
-        return this.connection.isConnected();
-    }
+            // sendDefinition
 
-    readUav(name, callback) {
-        this.connection.sendRequest(name);
-        this.updateHandlers.attachOnce(name, callback);
-    }
+            sendSubsribe(name) {
+                let definition = definitionsStore.getDefinitionByName(name);
+                if (!definition)return;
 
-    handleMessage(event) {
-        var packet = JSON.parse(event.data);
+                this.socket.send(JSON.stringify({
+                    type: Drone.REQUEST_TYPES.SUBSCRIBE,
+                    payload: {
+                        objectId: definition.id
+                    }
+                }));
+            },
 
-        if (packet.type == Drone.REQUEST_TYPES.UPDATE) {
-            var update = packet.payload;
-            var objectId = update.objectId;
-            var definition = definitionsById[objectId];
-            if (definition) {
-                this.updateHandlers.callHandlers(definition.name);
+            sendUnsubsribe(name) {
+                let definition = definitionsStore.getDefinitionByName(name);
+                if (!definition)return;
+
+                this.socket.send(JSON.stringify({
+                    type: Drone.REQUEST_TYPES.UNSUBSCRIBE,
+                    payload: {
+                        objectId: definition.id
+                    }
+                }));
             }
-        } else if (packet.type == Drone.REQUEST_TYPES.REQUEST) {
-            var request = packet.payload;
-            var objectId = request.objectId;
-            var definition = definitionsById[objectId];
-            if (definition) {
-                this.requestHandlers.callHandlers(definition.name);
-            }
-        } else if (packet.type == Drone.REQUEST_TYPES.DEFINITION) {
-            var definition = packet.payload;
-            definitionsStore.addDefinition(definition);
-
-            this.definitionHandlers.callHandlers(definition.name);
         }
     }
 
-    attachUpdateHandler(name, callback, callCount) {
-        this.updateHandlers.attachHandler(name, callback, callCount);
-    }
+    let readyCallbacks = [];
 
-    detachUpdateHandler(name, callback) {
-        this.updateHandlers.detachHandler(name, callback);
-    }
+    let client = {};
+    client.updateHandlers = newHandlerManager(function(name) {
+        client.connection.sendSubscribe(name);
+    }, function(name) {
+        client.connection.sendUnsubsribe(name);
+    });
+    client.requestHandlers = newHandlerManager();
+    client.definitionHandlers = newHandlerManager();
 
-    attachRequestHandler(name, callback, callCount) {
-        this.requestHandlers.attachHandler(name, callback, callCount);
-    }
+    _.extend(client, {
+        definitionsStore,
 
-    detachRequestHandler(name, callback) {
-        this.requestHandlers.detachHandler(name, callback);
-    }
-
-    attachDefinitionHandler(name, callback, callCount) {
-        this.definitionHandlers.attachHandler(name, callback, callCount);
-    }
-
-    detachDefinitionHandler(name, callback) {
-        this.definitionHandlers.detachHandler(name, callback);
-    }
-
-    onReady(callback) {
-        this.readyCallbacks.push(callback);
-    }
-
-    debug(o) {
-        if (this.options.debug) {
-            debug(o);
-        }
-    }
-
-    defaultValues(uavObjectName) {
-        var definition = definitionsStore.getDefinitionByName(name);
-        if (!definition)return;
-
-        let values = {};
-
-        for(let field of definition.fields) {
-            let value, parse = undefined, undefined;
-
-            switch(field.type) {
-                case "uint8":
-                parse = function(string) { return parseInt(string); }
-                break;
-                case "int8":
-                parse = function(string) { return parseInt(string); }
-                break;
-                case "enum":
-                parse = function(string) { return string };
-                break;
-                case "float":
-                parse = function(string) { return parseFloat(string) };
-                break;
-                default:
-                throw("Unknown type:" + field.type);
-            }
-
-            if (field.elements > 1) {
-                value = {};
-                field.elementsName.forEach(function(name, index) {
-                    let v = field.defaultValue.split(',')[index];
-                    value[name] = parse(v);
+        connect() {
+            this.connection = newDroneConnection(this.url, function() {
+                _.forEach(this.readyCallbacks, function(readyCallback) {
+                    readyCallback();
                 });
-            } else {
-                value = parse(field.defaultValue);
+
+                // send subsribe for all already registered updateHandlers
+                _.forEach(this.updateHandlers, function(name) {
+                    this.connection.sendSubscribe(name);
+                }.bind(this))
+            }, _.bind(this.handleMessage, this)); // benefits of _.bind over .bind() ? backward compat ?
+        },
+
+        handleMessage(event) {
+            let packet = JSON.parse(event.data);
+
+            if (packet.type == Drone.REQUEST_TYPES.UPDATE) {
+                let update = packet.payload;
+                let objectId = update.objectId;
+                let definition = definitionsById[objectId];
+                if (definition) {
+                    this.updateHandlers.callHandlers(definition.name, update);
+                }
+            } else if (packet.type == Drone.REQUEST_TYPES.REQUEST) {
+                let request = packet.payload;
+                let objectId = request.objectId;
+                let definition = definitionsById[objectId];
+                if (definition) {
+                    this.requestHandlers.callHandlers(definition.name, request);
+                }
+            } else if (packet.type == Drone.REQUEST_TYPES.DEFINITION) {
+                let definition = packet.payload;
+                definitionsStore.addDefinition(definition);
+
+                this.definitionHandlers.callHandlers(definition.name, definition);
             }
+        },
 
-            values[field.name] = value;
+        onReady(callback) {
+            if (this.connection.isConnected()) {
+                callback();
+                return;
+            }
+            this.readyCallbacks.push(callback);
         }
+    });
 
-        return values;
-    }
-}
-
-Drone.PACKET_TYPES = {
-    UPDATE: 'update',
-    REQUEST: 'req',
-    DEFINITION: 'def',
-    SUBSCRIBE: 'sub',
-    UNSUBSCRIBE: 'unsub'
-}
+    return client;
+};
