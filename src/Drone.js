@@ -5,14 +5,16 @@ import _ from "lodash";
 // Client
 export const newClient = function(url, options) {
 
+    options = options ? options : {};
     let defaultOptions = {
-        debug: false
+        debug : false
     }
+
     _.extend(options, defaultOptions);
 
     let debug = function(o) {
         if (options.debug) {
-            console.log(o);
+            (o);
         }
     };
 
@@ -29,7 +31,7 @@ export const newClient = function(url, options) {
                 let definition = definitionsById[objectId];
 
                 if (_.isUndefined(definition)) {
-                    console.log("Unknown Definition Exception -> " + objectId);
+                    debug("Unknown Definition Exception -> " + objectId);
                 }
                 return definition;
             },
@@ -38,7 +40,7 @@ export const newClient = function(url, options) {
                 let definition = definitionsByName[name];
 
                 if (_.isUndefined(definition)) {
-                    console.log("Unknown Definition Exception -> " + name);
+                    debug("Unknown Definition Exception -> " + name);
                 }
                 return definition;
             },
@@ -61,19 +63,19 @@ export const newClient = function(url, options) {
                     let value, parse = undefined, undefined;
 
                     switch(field.type) {
-                        case "uint8":
+                    case "uint8":
                         parse = function(string) { return parseInt(string); }
                         break;
-                        case "int8":
+                    case "int8":
                         parse = function(string) { return parseInt(string); }
                         break;
-                        case "enum":
+                    case "enum":
                         parse = function(string) { return string };
                         break;
-                        case "float":
+                    case "float":
                         parse = function(string) { return parseFloat(string) };
                         break;
-                        default:
+                    default:
                         throw("Unknown type:" + field.type);
                     }
 
