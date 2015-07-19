@@ -9,7 +9,6 @@ export const newClient = function(url, options) {
   let defaultOptions = {
     debug : false
   }
-
   _.extend(options, defaultOptions);
 
   let debug = function(o) {
