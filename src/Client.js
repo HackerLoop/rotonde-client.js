@@ -262,10 +262,14 @@ export const Client = function(url, options) {
   let client = {};
 
   client.updateHandlers = newHandlerManager(function(name) {
-    client.connection.sendSubscribe(name);
-  }, function(name) {
-    client.connection.sendUnsubsribe(name);
-  });
+    if (this.isConnected()) {
+      this.connection.sendSubscribe(name);
+    }
+  }.bind(client), function(name) {
+    if (this.isConnected()) {
+      this.connection.sendUnsubsribe(name);
+    }
+  }.bind(client));
 
   client.readyCallbacks = [];
   client.requestHandlers = newHandlerManager();
@@ -273,6 +277,10 @@ export const Client = function(url, options) {
 
   _.extend(client, {
     definitionsStore,
+
+    isConnected() {
+      return this.connection && this.connection.isConnected();
+    },
 
     connect() {
       this.connection = newDroneConnection(function() {
@@ -311,11 +319,16 @@ export const Client = function(url, options) {
 
         definitionsStore.addDefinition(definition);
         this.definitionHandlers.callHandlers(definition.name, definition);
+
+        // if there were registered update handlers, we send a subscribe
+        if (_.contains(this.updateHandlers.registeredNames(), definition.name)) {
+          this.connection.sendSubscribe(definition.name);
+        }
       }
     },
 
     onReady(callback) {
-      if (this.connection && this.connection.isConnected()) {
+      if (this.isConnected()) {
         callback();
         return;
       }
