@@ -103,11 +103,13 @@ export const newClient = function(url, options) {
         let handlers = {};
 
         let detachHandlerAtIndex = function(name, index) {
-            let handlers =  this.handlers[name];
-            handlers.splice(index--, 1);
-            if (handlers.length == 0) {
-                this.handlers[name] = null;
-                lastRemovedCallback(name);
+            let h =  handlers[name];
+            h.splice(index--, 1);
+            if (h.length == 0) {
+                handlers[name] = null;
+                if (lastRemovedCallback) {
+                    lastRemovedCallback(name);
+                }
             }
         };
 
@@ -115,14 +117,14 @@ export const newClient = function(url, options) {
             callHandlers(name, param) {
                 // Dispatch events to their callbacks
                 if (handlers[name]) {
-                    let handlers = handlers[name];
+                    let h = handlers[name];
 
-                    for (let i = 0; i < handlers.length; i++) {
-                        let callback  = handlers[i][0];
-                        let callCount = handlers[i][1];
+                    for (let i = 0; i < h.length; i++) {
+                        let callback  = h[i][0];
+                        let callCount = h[i][1];
 
                         if (callCount > 0) {  // it's not a permanent callback
-                            if (--handlers[i][1] == 0) { // did it consumed all its allowed calls ?
+                            if (--h[i][1] == 0) { // did it consumed all its allowed calls ?
                                 debug("Detaching consumed callback from " + name);
                                 detachHandlerAtIndex(name, i);
                             }
@@ -139,14 +141,16 @@ export const newClient = function(url, options) {
             // TODO use promises, ASAP
             attachHandler(name, callback, callCount) {
                 if (callCount == undefined)
-                callCount = -1;
+                    callCount = -1;
 
                 if (handlers[name] === undefined) {
                     handlers[name] = [];
-                    firstAddedCallback(name);
+                    if (firstAddedCallback) {
+                        firstAddedCallback(name);
+                    }
                 }
 
-                this.handlers[name].push([callback, callCount]);
+                handlers[name].push([callback, callCount]);
             },
 
             detachHandler(name, callback) {
@@ -200,7 +204,7 @@ export const newClient = function(url, options) {
                 if (!definition)return;
 
                 socket.send(JSON.stringify({
-                    type: Drone.REQUEST_TYPES.UPDATE,
+                    type: PACKET_TYPES.UPDATE,
                     payload: {
                         objectId: definition.id,
                         instanceId: 0,
@@ -214,7 +218,7 @@ export const newClient = function(url, options) {
                 if (!definition)return;
 
                 socket.send(JSON.stringify({
-                    type: Drone.REQUEST_TYPES.REQUEST,
+                    type: PACKET_TYPES.REQUEST,
                     payload: {
                         objectId: definition.id,
                         instanceId: instanceId
@@ -229,7 +233,7 @@ export const newClient = function(url, options) {
                 if (!definition)return;
 
                 socket.send(JSON.stringify({
-                    type: Drone.REQUEST_TYPES.SUBSCRIBE,
+                    type: PACKET_TYPES.SUBSCRIBE,
                     payload: {
                         objectId: definition.id
                     }
@@ -241,7 +245,7 @@ export const newClient = function(url, options) {
                 if (!definition)return;
 
                 socket.send(JSON.stringify({
-                    type: Drone.REQUEST_TYPES.UNSUBSCRIBE,
+                    type: PACKET_TYPES.UNSUBSCRIBE,
                     payload: {
                         objectId: definition.id
                     }
@@ -282,14 +286,14 @@ export const newClient = function(url, options) {
             if (packet.type == this.connection.PACKET_TYPES.UPDATE) {
                 let update = packet.payload;
                 let objectId = update.objectId;
-                let definition = definitionsById[objectId];
+                let definition = definitionsStore.getDefinitionById(objectId);
                 if (definition) {
                     this.updateHandlers.callHandlers(definition.name, update);
                 }
             } else if (packet.type == this.connection.PACKET_TYPES.REQUEST) {
                 let request = packet.payload;
                 let objectId = request.objectId;
-                let definition = definitionsById[objectId];
+                let definition = definitionsStore.getDefinitionById(objectId);
                 if (definition) {
                     this.requestHandlers.callHandlers(definition.name, request);
                 }
