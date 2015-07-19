@@ -2,8 +2,7 @@
 
 import _ from "lodash";
 
-// Client
-export const newClient = function(url, options) {
+export const Client = function(url, options) {
 
   let defaultOptions = {
     debug: false
@@ -53,7 +52,8 @@ export const newClient = function(url, options) {
 
       defaultObject(name) {
         let definition = definitionsByName(name);
-        if (!definition)return;
+        if (!definition) 
+          return;
 
         let values = {};
 
@@ -105,6 +105,7 @@ export const newClient = function(url, options) {
     let detachHandlerAtIndex = function(name, index) {
       let h =  handlers[name];
       h.splice(index--, 1);
+
       if (h.length == 0) {
         handlers[name] = null;
         if (lastRemovedCallback) {
@@ -145,6 +146,7 @@ export const newClient = function(url, options) {
 
           if (handlers[name] === undefined) {
             handlers[name] = [];
+
             if (firstAddedCallback) {
               firstAddedCallback(name);
             }
@@ -155,6 +157,7 @@ export const newClient = function(url, options) {
 
         detachHandler(name, callback) {
           let handlers =  this.handlers[name];
+
           for (let i = 0; i < handlers.length; i++) {
             let cb  = handlers[i][0];
             if (cb == callback) {
@@ -177,6 +180,7 @@ export const newClient = function(url, options) {
   let newDroneConnection = function(ready, onmessage) {
     let connected = false;
     let socket = new WebSocket(url);
+
     socket.onmessage = onmessage;
 
     const PACKET_TYPES = {
@@ -255,11 +259,13 @@ export const newClient = function(url, options) {
   }
 
   let client = {};
+
   client.updateHandlers = newHandlerManager(function(name) {
     client.connection.sendSubscribe(name);
   }, function(name) {
     client.connection.sendUnsubsribe(name);
   });
+
   client.readyCallbacks = [];
   client.requestHandlers = newHandlerManager();
   client.definitionHandlers = newHandlerManager();
@@ -287,6 +293,7 @@ export const newClient = function(url, options) {
         let update = packet.payload;
         let objectId = update.objectId;
         let definition = definitionsStore.getDefinitionById(objectId);
+
         if (definition) {
           this.updateHandlers.callHandlers(definition.name, update);
         }
@@ -294,13 +301,14 @@ export const newClient = function(url, options) {
         let request = packet.payload;
         let objectId = request.objectId;
         let definition = definitionsStore.getDefinitionById(objectId);
+
         if (definition) {
           this.requestHandlers.callHandlers(definition.name, request);
         }
       } else if (packet.type == this.connection.PACKET_TYPES.DEFINITION) {
         let definition = packet.payload;
-        definitionsStore.addDefinition(definition);
 
+        definitionsStore.addDefinition(definition);
         this.definitionHandlers.callHandlers(definition.name, definition);
       }
     },
