@@ -1,8 +1,8 @@
-"use strict";
+'use strict';
 
 var Promise = require('promise');
 var WebSocket = require('websocket').w3cwebsocket;
-var _ = require("lodash");
+var _ = require('lodash');
 
 module.exports = function(url, options) {
 
@@ -31,7 +31,7 @@ module.exports = function(url, options) {
         let definition = definitionsById[objectId];
 
         if (_.isUndefined(definition)) {
-          debug("Unknown Definition Exception -> " + objectId);
+          debug('Unknown Definition Exception -> ' + objectId);
         }
         return definition;
       },
@@ -40,7 +40,7 @@ module.exports = function(url, options) {
         let definition = definitionsByName[name];
 
         if (_.isUndefined(definition)) {
-          debug("Unknown Definition Exception -> " + name);
+          debug('Unknown Definition Exception -> ' + name);
         }
         return definition;
       },
@@ -64,20 +64,20 @@ module.exports = function(url, options) {
           let value, parse = undefined, undefined;
 
           switch(field.type) {
-            case "uint8":
+            case 'uint8':
               parse = function(string) { return parseInt(string); }
             break;
-            case "int8":
+            case 'int8':
               parse = function(string) { return parseInt(string); }
             break;
-            case "enum":
+            case 'enum':
               parse = function(string) { return string };
             break;
-            case "float":
+            case 'float':
               parse = function(string) { return parseFloat(string) };
             break;
             default:
-              throw("Unknown type:" + field.type);
+              throw('Unknown type:' + field.type);
           }
 
           if (field.elements > 1) {
@@ -129,7 +129,7 @@ module.exports = function(url, options) {
 
             if (callCount > 0) {  // it's not a permanent callback
               if (--h[i][1] == 0) { // did it consumed all its allowed calls ?
-                debug("Detaching consumed callback from " + name);
+                debug('Detaching consumed callback from ' + name);
                 detachAtIndex(name, i);
               }
             }
@@ -159,12 +159,14 @@ module.exports = function(url, options) {
       },
 
       detach(name, callback) {
-        let handlers =  this.handlers[name];
+        if (handlers[name]) {
+          let h = handlers[name];
 
-        for (let i = 0; i < handlers.length; i++) {
-          let cb  = handlers[i][0];
-          if (cb == callback) {
-            detachAtIndex(name, i);
+          for (let i = 0; i < h.length; i++) {
+            let cb  = h[i][0];
+            if (cb == callback) {
+              detachAtIndex(name, i);
+            }
           }
         }
       },
