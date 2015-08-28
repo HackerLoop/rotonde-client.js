@@ -12,7 +12,7 @@ var reload = browserSync.reload;
 var config = {
   entryFile: './index.js',
   outputDir: './dist/',
-  outputFile: 'flylab-drone.js'
+  outputFile: 'skybot-drone.js'
 };
 
 // clean the output directory

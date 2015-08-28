@@ -1,8 +1,8 @@
 "use strict";
 
-import _ from "lodash";
+var _ = require("lodash");
 
-export const Client = function(url, options) {
+module.exports = function(url, options) {
 
   options = options ? options : {};
   let defaultOptions = {
@@ -103,7 +103,7 @@ export const Client = function(url, options) {
 
     let handlers = {};
 
-    let detachHandlerAtIndex = function(name, index) {
+    let detachAtIndex = function(name, index) {
       let h =  handlers[name];
       h.splice(index--, 1);
 
@@ -128,7 +128,7 @@ export const Client = function(url, options) {
             if (callCount > 0) {  // it's not a permanent callback
               if (--h[i][1] == 0) { // did it consumed all its allowed calls ?
                 debug("Detaching consumed callback from " + name);
-                detachHandlerAtIndex(name, i);
+                detachAtIndex(name, i);
               }
             }
             callback(param);
@@ -141,7 +141,7 @@ export const Client = function(url, options) {
         },
 
         // TODO use promises, ASAP
-        attachHandler(name, callback, callCount) {
+        attach(name, callback, callCount) {
           if (callCount == undefined)
             callCount = -1;
 
@@ -156,19 +156,19 @@ export const Client = function(url, options) {
           handlers[name].push([callback, callCount]);
         },
 
-        detachHandler(name, callback) {
+        detach(name, callback) {
           let handlers =  this.handlers[name];
 
           for (let i = 0; i < handlers.length; i++) {
             let cb  = handlers[i][0];
             if (cb == callback) {
-              detachHandlerAtIndex(name, i);
+              detachAtIndex(name, i);
             }
           }
         },
 
         attachOnce(name, callback) {
-          this.attachHandler(name, callback, 1);
+          this.attach(name, callback, 1);
         },
 
         each(func) {
@@ -177,7 +177,7 @@ export const Client = function(url, options) {
     }
   };
 
-  // Abstracts a websocket to send javascript objects as inner JSON protocol
+  // Abstracts a websocket to send javascript objects as skybot JSON protocol
   let newDroneConnection = function(ready, onmessage) {
     let connected = false;
     let socket = new WebSocket(url);
@@ -267,7 +267,7 @@ export const Client = function(url, options) {
     }
   }.bind(client), function(name) {
     if (this.isConnected()) {
-      this.connection.sendUnsubsribe(name);
+      this.connection.sendUnsubscribe(name);
     }
   }.bind(client));
 
