@@ -1,5 +1,6 @@
 "use strict";
 
+var Promise = require('promise');
 var WebSocket = require('websocket').w3cwebsocket;
 var _ = require("lodash");
 
@@ -334,7 +335,48 @@ module.exports = function(url, options) {
         return;
       }
       this.readyCallbacks.push(callback);
+    },
+
+    makePromise(handlerManager, name, isRequest) {
+      return new Promise(_.bind(function(resolve, reject) {
+        let done = false;
+        let fn = _.bind(function(data) {
+          done = true;
+          resolve(data);
+        }, this);
+
+        handlerManager.attachOnce(name, fn);
+        if (isRequest) {
+          this.connection.sendRequest(name);
+        }
+
+        // setup timeout cb
+        setTimeout(3000, _.bind(function() {
+          if (done) {
+            return;
+          }
+          handlerManager.detach(name, fn);
+          // TODO setup proper error handling wih error codes
+          reject('time out');
+        }, this));
+
+      }, this));
+    },
+
+    requireDefinitions(names) {
+      let promises = names.map(function(name) {
+        return this.makePromise(this.definitionHandlers, name);
+      }, this);
+      return Promise.all(promises);
+    },
+
+    requestValuesForUavs(names) {
+      let promises = names.map(function(name) {
+        return this.makePromise(this.updateHandlers, name, true);
+      }, this);
+      return Promise.all(promises);
     }
+
   });
 
   return client;
