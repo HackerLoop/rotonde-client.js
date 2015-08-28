@@ -351,14 +351,14 @@ module.exports = function(url, options) {
         }
 
         // setup timeout cb
-        setTimeout(3000, _.bind(function() {
+        setTimeout(_.bind(function() {
           if (done) {
             return;
           }
           handlerManager.detach(name, fn);
           // TODO setup proper error handling wih error codes
           reject('time out');
-        }, this));
+        }, this), 3000);
 
       }, this));
     },
