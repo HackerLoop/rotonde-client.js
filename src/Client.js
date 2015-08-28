@@ -10,7 +10,7 @@ module.exports = function(url, options) {
   let defaultOptions = {
     debug : false
   }
-  _.extend(options, defaultOptions);
+  _.extend(defaultOptions, options);
 
   let debug = function(o) {
     if (options.debug) {
@@ -307,6 +307,7 @@ module.exports = function(url, options) {
         let objectId = update.objectId;
         let definition = definitionsStore.getDefinitionById(objectId);
 
+        debug('received update: ' + objectId + ' ' + definition);
         if (definition) {
           this.updateHandlers.callHandlers(definition.name, update);
         }
@@ -315,12 +316,14 @@ module.exports = function(url, options) {
         let objectId = request.objectId;
         let definition = definitionsStore.getDefinitionById(objectId);
 
+        debug('received request: ' + objectId + ' ' + definition);
         if (definition) {
           this.requestHandlers.callHandlers(definition.name, request);
         }
       } else if (packet.type == this.connection.PACKET_TYPES.DEFINITION) {
         let definition = packet.payload;
 
+        debug('received definition: ' + definition);
         definitionsStore.addDefinition(definition);
         this.definitionHandlers.callHandlers(definition.name, definition);
 
@@ -359,7 +362,7 @@ module.exports = function(url, options) {
           }
           handlerManager.detach(name, fn);
           // TODO setup proper error handling wih error codes
-          reject('time out');
+          reject('time out ' + name);
         }, this), 3000);
 
       }, this));
@@ -373,10 +376,23 @@ module.exports = function(url, options) {
     },
 
     requestValuesForUavs(names) {
-      let promises = names.map(function(name) {
-        return this.makePromise(this.updateHandlers, name, true);
+      let missingDefs = names.reduce(function(current, name) {
+        if (definitionsStore.getDefinitionByName(name)) {
+          return current;
+        }
+        return current.concat(name);
+      }, []);
+
+      let promises = _.bind(function() {
+        return names.map(function(name) {
+          return this.makePromise(this.updateHandlers, name, true);
+        }, this);
       }, this);
-      return Promise.all(promises);
+
+      if (missingDefs.length) {
+        return this.requireDefinitions(missingDefs).then(Promise.all(promises()));
+      }
+      return Promise.all(promises());
     }
 
   });
