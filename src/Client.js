@@ -1,5 +1,6 @@
 "use strict";
 
+var WebSocket = require('websocket').w3cwebsocket;
 var _ = require("lodash");
 
 module.exports = function(url, options) {
