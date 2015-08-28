@@ -2,7 +2,7 @@
   "name": "flylab-drone",
   "version": "0.0.1",
   "description": "",
-  "main": "index.js",
+  "main": "src/Client.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -11,6 +11,7 @@
     "url": "https://github.com/openflylab/drone.js.git"
   },
   "keywords": [
+    "Skybot",
     "Drone",
     "Flylab"
   ],
@@ -27,12 +28,9 @@
     "gulp": "~3.8.10",
     "gulp-rename": "^1.2.0",
     "lodash": "^2.4.1",
-    "underscore": "^1.8.3",
     "rimraf": "~2.2.8",
     "watchify": "^2.1.1",
     "vinyl-source-stream": "^1.0.0"
   },
-  "dependencies": {
-    "underscore": "^1.8.3"
-  }
+  "dependencies": {}
 }
