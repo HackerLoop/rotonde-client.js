@@ -64,16 +64,16 @@ module.exports = function(url, options) {
           switch(field.type) {
             case "uint8":
               parse = function(string) { return parseInt(string); }
-              break;
+            break;
             case "int8":
               parse = function(string) { return parseInt(string); }
-              break;
+            break;
             case "enum":
               parse = function(string) { return string };
-              break;
+            break;
             case "float":
               parse = function(string) { return parseFloat(string) };
-              break;
+            break;
             default:
               throw("Unknown type:" + field.type);
           }
@@ -136,44 +136,44 @@ module.exports = function(url, options) {
         }
       },
 
-        registeredNames() {
-          return _.keys(handlers);
-        },
+      registeredNames() {
+        return _.keys(handlers);
+      },
 
-        // TODO use promises, ASAP
-        attach(name, callback, callCount) {
-          if (callCount == undefined)
-            callCount = -1;
+      // TODO use promises, ASAP
+      attach(name, callback, callCount) {
+        if (callCount == undefined)
+          callCount = -1;
 
-          if (handlers[name] === undefined) {
-            handlers[name] = [];
+        if (handlers[name] === undefined) {
+          handlers[name] = [];
 
-            if (firstAddedCallback) {
-              firstAddedCallback(name);
-            }
+          if (firstAddedCallback) {
+            firstAddedCallback(name);
           }
-
-          handlers[name].push([callback, callCount]);
-        },
-
-        detach(name, callback) {
-          let handlers =  this.handlers[name];
-
-          for (let i = 0; i < handlers.length; i++) {
-            let cb  = handlers[i][0];
-            if (cb == callback) {
-              detachAtIndex(name, i);
-            }
-          }
-        },
-
-        attachOnce(name, callback) {
-          this.attach(name, callback, 1);
-        },
-
-        each(func) {
-          _.forEach(handlers, func);
         }
+
+        handlers[name].push([callback, callCount]);
+      },
+
+      detach(name, callback) {
+        let handlers =  this.handlers[name];
+
+        for (let i = 0; i < handlers.length; i++) {
+          let cb  = handlers[i][0];
+          if (cb == callback) {
+            detachAtIndex(name, i);
+          }
+        }
+      },
+
+      attachOnce(name, callback) {
+        this.attach(name, callback, 1);
+      },
+
+      each(func) {
+        _.forEach(handlers, func);
+      }
     }
   };
 
@@ -200,62 +200,62 @@ module.exports = function(url, options) {
     return {
       PACKET_TYPES,
 
-        isConnected() {
-          return connected;
-        },
+      isConnected() {
+        return connected;
+      },
 
-        sendUpdate(name, data) {
-          let definition = definitionsStore.getDefinitionByName(name);
-          if (!definition)return;
+      sendUpdate(name, data) {
+        let definition = definitionsStore.getDefinitionByName(name);
+        if (!definition)return;
 
-          socket.send(JSON.stringify({
-            type: PACKET_TYPES.UPDATE,
-            payload: {
-              objectId: definition.id,
+        socket.send(JSON.stringify({
+          type: PACKET_TYPES.UPDATE,
+          payload: {
+            objectId: definition.id,
             instanceId: 0,
             data: data
-            }
-          }));
-        },
+          }
+        }));
+      },
 
-        sendRequest(name, instanceId) {
-          let definition = definitionsStore.getDefinitionByName(name);
-          if (!definition)return;
+      sendRequest(name, instanceId) {
+        let definition = definitionsStore.getDefinitionByName(name);
+        if (!definition)return;
 
-          socket.send(JSON.stringify({
-            type: PACKET_TYPES.REQUEST,
-            payload: {
-              objectId: definition.id,
+        socket.send(JSON.stringify({
+          type: PACKET_TYPES.REQUEST,
+          payload: {
+            objectId: definition.id,
             instanceId: instanceId
-            }
-          }));
-        },
+          }
+        }));
+      },
 
-        // sendDefinition
+      // sendDefinition
 
-        sendSubscribe(name) {
-          let definition = definitionsStore.getDefinitionByName(name);
-          if (!definition)return;
+      sendSubscribe(name) {
+        let definition = definitionsStore.getDefinitionByName(name);
+        if (!definition)return;
 
-          socket.send(JSON.stringify({
-            type: PACKET_TYPES.SUBSCRIBE,
-            payload: {
-              objectId: definition.id
-            }
-          }));
-        },
+        socket.send(JSON.stringify({
+          type: PACKET_TYPES.SUBSCRIBE,
+          payload: {
+            objectId: definition.id
+          }
+        }));
+      },
 
-        sendUnsubscribe(name) {
-          let definition = definitionsStore.getDefinitionByName(name);
-          if (!definition)return;
+      sendUnsubscribe(name) {
+        let definition = definitionsStore.getDefinitionByName(name);
+        if (!definition)return;
 
-          socket.send(JSON.stringify({
-            type: PACKET_TYPES.UNSUBSCRIBE,
-            payload: {
-              objectId: definition.id
-            }
-          }));
-        }
+        socket.send(JSON.stringify({
+          type: PACKET_TYPES.UNSUBSCRIBE,
+          payload: {
+            objectId: definition.id
+          }
+        }));
+      }
     }
   }
 
