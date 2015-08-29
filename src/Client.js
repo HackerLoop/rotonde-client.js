@@ -45,8 +45,33 @@ module.exports = function(url, options) {
         return definition;
       },
 
+      /**
+       * example: 
+      {
+        "name":"WaypointActiveMeta",
+        "description":"Meta for: \nIndicates the currently active waypoint",
+        "id":514175389,
+        "fields":[
+          {
+            "name":"periodFlight",
+            "units":"ms",
+            "elements":1,
+            "elementsName":null,
+            "options":null,
+            "defaultValue":"",
+          },
+          [...]
+        ]
+      }
+      */
       addDefinition(definition) {
-        definitions.push(definition);
+        let d = definitionsById[definition.id];
+        if (d) {
+          let index = _.indexOf(definitions, d);
+          definitions[index] = definition;
+        } else {
+          definitions.push(definition);
+        }
 
         // update indexes
         definitionsById = _.indexBy(definitions, 'id');
@@ -208,7 +233,7 @@ module.exports = function(url, options) {
         return connected;
       },
 
-      sendUpdate(name, data) {
+      sendUpdate(name, data, instanceId) {
         let definition = definitionsStore.getDefinitionByName(name);
         if (!definition)return;
 
@@ -216,7 +241,7 @@ module.exports = function(url, options) {
           type: PACKET_TYPES.UPDATE,
           payload: {
             objectId: definition.id,
-            instanceId: 0,
+            instanceId: instanceId || 0,
             data: data
           }
         }));
@@ -235,7 +260,13 @@ module.exports = function(url, options) {
         }));
       },
 
-      // sendDefinition
+      sendDefinition(definition) {
+        definitionsStore.addDefinition(definition);
+        socket.send(JSON.stringify({
+          type: PACKET_TYPES.DEFINITION,
+          payload: definition
+        }));
+      },
 
       sendSubscribe(name) {
         let definition = definitionsStore.getDefinitionByName(name);
@@ -307,7 +338,7 @@ module.exports = function(url, options) {
         let objectId = update.objectId;
         let definition = definitionsStore.getDefinitionById(objectId);
 
-        debug('received update: ' + objectId + ' ' + definition);
+        debug('received update: ' + objectId + ' ' + JSON.stringify(definition));
         if (definition) {
           this.updateHandlers.callHandlers(definition.name, update);
         }
@@ -390,7 +421,7 @@ module.exports = function(url, options) {
       }, this);
 
       if (missingDefs.length) {
-        return this.requireDefinitions(missingDefs).then(Promise.all(promises()));
+        return this.requireDefinitions(missingDefs).then(function(){return Promise.all(promises())});
       }
       return Promise.all(promises());
     }
