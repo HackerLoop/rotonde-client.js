@@ -1,8 +1,9 @@
 'use strict';
 
-var Promise = require('promise');
-var WebSocket = require('websocket').w3cwebsocket;
-var _ = require('lodash');
+const
+  Promise = require('promise'),
+  WebSocket = require('websocket').w3cwebsocket,
+  _ = require('lodash');
 
 module.exports = function(url, options) {
 
@@ -128,7 +129,7 @@ module.exports = function(url, options) {
   // or when a given name removed its last handler
   let newHandlerManager = function(firstAddedCallback, lastRemovedCallback) {
 
-    let handlers = {};
+    let handlers = new Map();
 
     let detachAtIndex = function(name, index) {
       let h =  handlers[name];
@@ -192,6 +193,14 @@ module.exports = function(url, options) {
             if (cb == callback) {
               detachAtIndex(name, i);
             }
+          }
+        }
+      },
+
+      detachAll() {
+        for(let [name, h] of handlers) {
+          for(let i = 0; i < h.length; i++) {
+            detachAtIndex(name, i);
           }
         }
       },
@@ -372,7 +381,8 @@ module.exports = function(url, options) {
       }
       this.readyCallbacks.push(callback);
     },
-
+  
+    // TODO remove unecessary binds
     makePromise(handlerManager, name, isRequest) {
       return new Promise(_.bind(function(resolve, reject) {
         let done = false;
@@ -387,6 +397,7 @@ module.exports = function(url, options) {
         }
 
         // setup timeout cb
+        // TODO cancel the timeout instead of relying on done
         setTimeout(_.bind(function() {
           if (done) {
             return;
