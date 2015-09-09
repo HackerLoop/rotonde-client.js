@@ -196,8 +196,8 @@ module.exports = function(url, options) {
       },
 
       detachAll() {
-        for(let [name, h] of handlers) {
-          for(let i = 0; i < h.length; i++) {
+        for(let name of handlers.keys()) {
+          for(let i = 0; i < handlers[name].length; i++) {
             detachAtIndex(name, i);
           }
         }
