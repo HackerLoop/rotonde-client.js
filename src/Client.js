@@ -135,7 +135,7 @@ module.exports = function(url, options) {
       h.splice(index--, 1);
 
       if (h.length == 0) {
-        handlers[name] = null;
+        handlers[name] = undefined;
         if (lastRemovedCallback) {
           lastRemovedCallback(name);
         }
@@ -167,7 +167,6 @@ module.exports = function(url, options) {
         return _.keys(handlers);
       },
 
-      // TODO use promises, ASAP
       attach(name, callback, callCount) {
         if (callCount == undefined)
           callCount = -1;
@@ -179,7 +178,6 @@ module.exports = function(url, options) {
             firstAddedCallback(name);
           }
         }
-
         handlers[name].push([callback, callCount]);
       },
 
@@ -237,10 +235,14 @@ module.exports = function(url, options) {
         let definition = definitionsStore.getDefinitionByName(name);
         if (!definition)return;
 
+        this.sendUpdateWithId(definition.id, data, instanceId);
+      },
+
+      sendUpdateWithId(objectId, data, instanceId) {
         socket.send(JSON.stringify({
           type: PACKET_TYPES.UPDATE,
           payload: {
-            objectId: definition.id,
+            objectId: objectId,
             instanceId: instanceId || 0,
             data: data
           }
@@ -338,7 +340,7 @@ module.exports = function(url, options) {
         let objectId = update.objectId;
         let definition = definitionsStore.getDefinitionById(objectId);
 
-        debug('received update: ' + objectId + ' ' + JSON.stringify(definition));
+        debug('received update: ' + objectId + ' ' + JSON.stringify(update));
         if (definition) {
           this.updateHandlers.callHandlers(definition.name, update);
         }
@@ -347,14 +349,14 @@ module.exports = function(url, options) {
         let objectId = request.objectId;
         let definition = definitionsStore.getDefinitionById(objectId);
 
-        debug('received request: ' + objectId + ' ' + definition);
+        debug('received request: ' + objectId + ' ' + definition.name);
         if (definition) {
           this.requestHandlers.callHandlers(definition.name, request);
         }
       } else if (packet.type == this.connection.PACKET_TYPES.DEFINITION) {
         let definition = packet.payload;
 
-        debug('received definition: ' + definition);
+        debug('received definition: ' + definition.name);
         definitionsStore.addDefinition(definition);
         this.definitionHandlers.callHandlers(definition.name, definition);
 
