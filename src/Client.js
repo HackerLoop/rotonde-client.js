@@ -395,7 +395,7 @@ module.exports = function(url, options) {
           }
           handlerManager.detach(name, fn);
           // TODO setup proper error handling wih error codes
-          reject('time out ' + name);
+          reject('time out ' + name + ' isRequest: ' + isRequest);
         }, this), 3000);
 
       }, this));
