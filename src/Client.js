@@ -416,14 +416,14 @@ module.exports = function(url, options) {
       }, this));
     },
 
-    requireDefinitions(names) {
+    requireDefinitions(names, timeout) {
       let promises = names.map(function(name) {
-        return this.makePromise(this.definitionHandlers, name);
+        return this.makePromise(this.definitionHandlers, name, false, timeout);
       }, this);
       return Promise.all(promises);
     },
 
-    requestValuesForUavs(names) {
+    requestValuesForUavs(names, timeout) {
       let missingDefs = names.reduce(function(current, name) {
         if (definitionsStore.getDefinitionByName(name)) {
           return current;
@@ -433,7 +433,7 @@ module.exports = function(url, options) {
 
       let promises = _.bind(function() {
         return names.map(function(name) {
-          return this.makePromise(this.updateHandlers, name, true);
+          return this.makePromise(this.updateHandlers, name, true, timeout);
         }, this);
       }, this);
 
