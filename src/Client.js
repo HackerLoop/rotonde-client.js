@@ -1,8 +1,9 @@
 'use strict';
 
-var Promise = require('promise');
-var WebSocket = require('websocket').w3cwebsocket;
-var _ = require('lodash');
+const
+  Promise = require('promise'),
+  WebSocket = require('websocket').w3cwebsocket,
+  _ = require('lodash');
 
 module.exports = function(url, options) {
 
@@ -128,7 +129,7 @@ module.exports = function(url, options) {
   // or when a given name removed its last handler
   let newHandlerManager = function(firstAddedCallback, lastRemovedCallback) {
 
-    let handlers = {};
+    let handlers = new Map();
 
     let detachAtIndex = function(name, index) {
       let h =  handlers[name];
@@ -190,6 +191,14 @@ module.exports = function(url, options) {
             if (cb == callback) {
               detachAtIndex(name, i);
             }
+          }
+        }
+      },
+
+      detachAll() {
+        for(let name of handlers.keys()) {
+          for(let i = 0; i < handlers[name].length; i++) {
+            detachAtIndex(name, i);
           }
         }
       },
@@ -374,8 +383,9 @@ module.exports = function(url, options) {
       }
       this.readyCallbacks.push(callback);
     },
-
-    makePromise(handlerManager, name, isRequest) {
+  
+    // TODO remove unecessary binds
+    makePromise(handlerManager, name, isRequest, timeout) {
       return new Promise(_.bind(function(resolve, reject) {
         let done = false;
         let fn = _.bind(function(data) {
@@ -388,7 +398,12 @@ module.exports = function(url, options) {
           this.connection.sendRequest(name);
         }
 
+        if (!timeout) {
+          return;
+        }
+
         // setup timeout cb
+        // TODO cancel the timeout instead of relying on done
         setTimeout(_.bind(function() {
           if (done) {
             return;
@@ -396,7 +411,7 @@ module.exports = function(url, options) {
           handlerManager.detach(name, fn);
           // TODO setup proper error handling wih error codes
           reject('time out ' + name + ' isRequest: ' + isRequest);
-        }, this), 3000);
+        }, this), timeout);
 
       }, this));
     },
