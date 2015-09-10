@@ -407,7 +407,7 @@ module.exports = function(url, options) {
           handlerManager.detach(name, fn);
           // TODO setup proper error handling wih error codes
           reject('time out ' + name);
-        }, this), 3000);
+        }, this), 10000);
 
       }, this));
     },
