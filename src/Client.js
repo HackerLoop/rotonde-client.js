@@ -88,7 +88,6 @@ let newHandlerManager = (firstAddedCallback, lastRemovedCallback) => {
           return;
         }
 
-        console.log('timeut', timeout);
         timer = setTimeout(() => {
           this.detach(identifier, fn);
           // TODO setup proper error handling wih error codes
