@@ -5,445 +5,381 @@ const
   WebSocket = require('websocket').w3cwebsocket,
   _ = require('lodash');
 
-module.exports = function(url, options) {
+// stores and indexes definitions
+let newDefinitionsStore = () => {
+  let definitions = [];
 
-  options = options ? options : {};
-  let defaultOptions = {
-    debug : false
-  }
-  _.extend(defaultOptions, options);
+  // definitions indexing
+  let definitionsByIdentifier = {};
 
-  let debug = function(o) {
-    if (options.debug) {
-      console.log(o);
-    }
-  };
+  return {
+    getDefinition(identifier) {
+      let definition = definitionsByIdentifier[identifier];
 
-  // stores and indexes definitions
-  let definitionsStore = (function() {
-    let definitions = [];
-
-    // definitions indexing
-    let definitionsById = {};
-    let definitionsByName = {};
-
-    return {
-      getDefinitionById(objectId) {
-        let definition = definitionsById[objectId];
-
-        if (_.isUndefined(definition)) {
-          debug('Unknown Definition Exception -> ' + objectId);
-        }
-        return definition;
-      },
-
-      getDefinitionByName(name) {
-        let definition = definitionsByName[name];
-
-        if (_.isUndefined(definition)) {
-          debug('Unknown Definition Exception -> ' + name);
-        }
-        return definition;
-      },
-
-      /**
-       * example: 
-      {
-        "name":"WaypointActiveMeta",
-        "description":"Meta for: \nIndicates the currently active waypoint",
-        "id":514175389,
-        "fields":[
-          {
-            "name":"periodFlight",
-            "units":"ms",
-            "elements":1,
-            "elementsName":null,
-            "options":null,
-            "defaultValue":"",
-          },
-          [...]
-        ]
+      if (_.isUndefined(definition)) {
+        console.log('Unknown Definition Exception -> ' + identifier);
       }
-      */
-      addDefinition(definition) {
-        let d = definitionsById[definition.id];
-        if (d) {
-          let index = _.indexOf(definitions, d);
-          definitions[index] = definition;
-        } else {
-          definitions.push(definition);
-        }
-
-        // update indexes
-        definitionsById = _.indexBy(definitions, 'id');
-        definitionsByName = _.indexBy(definitions, 'name');
-      },
-
-      defaultObject(name) {
-        let definition = definitionsByName(name);
-        if (!definition)
-          return;
-
-        let values = {};
-
-        for(let field of definition.fields) {
-          let value, parse = undefined, undefined;
-
-          switch(field.type) {
-            case 'uint8':
-              parse = function(string) { return parseInt(string); }
-            break;
-            case 'int8':
-              parse = function(string) { return parseInt(string); }
-            break;
-            case 'enum':
-              parse = function(string) { return string };
-            break;
-            case 'float':
-              parse = function(string) { return parseFloat(string) };
-            break;
-            default:
-              throw('Unknown type:' + field.type);
-          }
-
-          if (field.elements > 1) {
-            value = {};
-            field.elementsName.forEach(function(name, index) {
-              let v = field.defaultValue.split(',')[index];
-              value[name] = parse(v);
-            });
-          } else {
-            value = parse(field.defaultValue);
-          }
-
-          values[field.name] = value;
-        }
-
-        return values;
-      }
-    }
-  })();
-
-  // stores handlers by name, can auto remove handlers after n calls.
-  // callbacks can be passed to this function, they will be called when a given name gets its first handler,
-  // or when a given name removed its last handler
-  let newHandlerManager = function(firstAddedCallback, lastRemovedCallback) {
-
-    let handlers = new Map();
-
-    let detachAtIndex = function(name, index) {
-      let h =  handlers[name];
-      h.splice(index--, 1);
-
-      if (h.length == 0) {
-        handlers[name] = undefined;
-        if (lastRemovedCallback) {
-          lastRemovedCallback(name);
-        }
-      }
-    };
-
-    return {
-      callHandlers(name, param) {
-        // Dispatch events to their callbacks
-        if (handlers[name]) {
-          let h = handlers[name];
-
-          for (let i = 0; i < h.length; i++) {
-            let callback  = h[i][0];
-            let callCount = h[i][1];
-
-            if (callCount > 0) {  // it's not a permanent callback
-              if (--h[i][1] == 0) { // did it consumed all its allowed calls ?
-                debug('Detaching consumed callback from ' + name);
-                detachAtIndex(name, i);
-              }
-            }
-            callback(param);
-          }
-        }
-      },
-
-      registeredNames() {
-        return _.keys(handlers);
-      },
-
-      attach(name, callback, callCount) {
-        if (callCount == undefined)
-          callCount = -1;
-
-        if (handlers[name] === undefined) {
-          handlers[name] = [];
-
-          if (firstAddedCallback) {
-            firstAddedCallback(name);
-          }
-        }
-        handlers[name].push([callback, callCount]);
-      },
-
-      detach(name, callback) {
-        if (handlers[name]) {
-          let h = handlers[name];
-
-          for (let i = 0; i < h.length; i++) {
-            let cb  = h[i][0];
-            if (cb == callback) {
-              detachAtIndex(name, i);
-            }
-          }
-        }
-      },
-
-      detachAll() {
-        for(let name of handlers.keys()) {
-          for(let i = 0; i < handlers[name].length; i++) {
-            detachAtIndex(name, i);
-          }
-        }
-      },
-
-      attachOnce(name, callback) {
-        this.attach(name, callback, 1);
-      },
-
-      each(func) {
-        _.forEach(handlers, func);
-      }
-    }
-  };
-
-  // Abstracts a websocket to send javascript objects as skybot JSON protocol
-  let newDroneConnection = function(ready, onmessage) {
-    let connected = false;
-    let socket = new WebSocket(url);
-
-    socket.onmessage = onmessage;
-
-    const PACKET_TYPES = {
-      UPDATE: 'update',
-      REQUEST: 'req',
-      DEFINITION: 'def',
-      SUBSCRIBE: 'sub',
-      UNSUBSCRIBE: 'unsub'
-    }
-
-    socket.onopen = function(event) {
-      connected = true;
-      ready();
-    };
-
-    return {
-      PACKET_TYPES,
-
-      isConnected() {
-        return connected;
-      },
-
-      sendUpdate(name, data, instanceId) {
-        let definition = definitionsStore.getDefinitionByName(name);
-        if (!definition)return;
-
-        this.sendUpdateWithId(definition.id, data, instanceId);
-      },
-
-      sendUpdateWithId(objectId, data, instanceId) {
-        socket.send(JSON.stringify({
-          type: PACKET_TYPES.UPDATE,
-          payload: {
-            objectId: objectId,
-            instanceId: instanceId || 0,
-            data: data
-          }
-        }));
-      },
-
-      sendRequest(name, instanceId) {
-        let definition = definitionsStore.getDefinitionByName(name);
-        if (!definition)return;
-
-        socket.send(JSON.stringify({
-          type: PACKET_TYPES.REQUEST,
-          payload: {
-            objectId: definition.id,
-            instanceId: instanceId
-          }
-        }));
-      },
-
-      sendDefinition(definition) {
-        definitionsStore.addDefinition(definition);
-        socket.send(JSON.stringify({
-          type: PACKET_TYPES.DEFINITION,
-          payload: definition
-        }));
-      },
-
-      sendSubscribe(name) {
-        let definition = definitionsStore.getDefinitionByName(name);
-        if (!definition)return;
-
-        socket.send(JSON.stringify({
-          type: PACKET_TYPES.SUBSCRIBE,
-          payload: {
-            objectId: definition.id
-          }
-        }));
-      },
-
-      sendUnsubscribe(name) {
-        let definition = definitionsStore.getDefinitionByName(name);
-        if (!definition)return;
-
-        socket.send(JSON.stringify({
-          type: PACKET_TYPES.UNSUBSCRIBE,
-          payload: {
-            objectId: definition.id
-          }
-        }));
-      }
-    }
-  }
-
-  let client = {};
-
-  client.updateHandlers = newHandlerManager(function(name) {
-    if (this.isConnected()) {
-      this.connection.sendSubscribe(name);
-    }
-  }.bind(client), function(name) {
-    if (this.isConnected()) {
-      this.connection.sendUnsubscribe(name);
-    }
-  }.bind(client));
-
-  client.readyCallbacks = [];
-  client.requestHandlers = newHandlerManager();
-  client.definitionHandlers = newHandlerManager();
-
-  _.extend(client, {
-    definitionsStore,
-
-    isConnected() {
-      return this.connection && this.connection.isConnected();
+      return definition;
     },
 
-    connect() {
-      this.connection = newDroneConnection(function() {
-        _.forEach(this.readyCallbacks, function(readyCallback) {
-          readyCallback();
+    addDefinition(definition) {
+      let d = definitionsByIdentifier[definition.identifier];
+      if (d) {
+        let index = _.indexOf(definitions, d);
+        let fields = _.uniq(_.union(d.fields, definition.fields), function(field) {
+          return field.name;
         });
-
-        // send subsribe for all already registered updateHandlers
-        this.updateHandlers.each(function(name) {
-          this.connection.sendSubscribe(name);
-        }.bind(this))
-      }.bind(this), _.bind(this.handleMessage, this)); // benefits of _.bind over .bind() ? backward compat ?
-    },
-
-    handleMessage(event) {
-      let packet = JSON.parse(event.data);
-
-      if (packet.type == this.connection.PACKET_TYPES.UPDATE) {
-        let update = packet.payload;
-        let objectId = update.objectId;
-        let definition = definitionsStore.getDefinitionById(objectId);
-
-        debug('received update: ' + objectId + ' ' + JSON.stringify(update));
-        if (definition) {
-          this.updateHandlers.callHandlers(definition.name, update);
-        }
-      } else if (packet.type == this.connection.PACKET_TYPES.REQUEST) {
-        let request = packet.payload;
-        let objectId = request.objectId;
-        let definition = definitionsStore.getDefinitionById(objectId);
-
-        debug('received request: ' + objectId + ' ' + definition.name);
-        if (definition) {
-          this.requestHandlers.callHandlers(definition.name, request);
-        }
-      } else if (packet.type == this.connection.PACKET_TYPES.DEFINITION) {
-        let definition = packet.payload;
-
-        debug('received definition: ' + definition.name);
-        definitionsStore.addDefinition(definition);
-        this.definitionHandlers.callHandlers(definition.name, definition);
-
-        // if there were registered update handlers, we send a subscribe
-        if (_.contains(this.updateHandlers.registeredNames(), definition.name)) {
-          this.connection.sendSubscribe(definition.name);
-        }
+        definition.fields = fields;
+        definitions[index] = definition;
+      } else {
+        definitions.push(definition);
       }
+
+      // update indexes
+      definitionsByIdentifier = _.indexBy(definitions, 'identifier');
     },
 
-    onReady(callback) {
-      if (this.isConnected()) {
-        callback();
+    removeDefinition(identifier) {
+      let index = _.indexOf(definitions, d);
+      if (index < 0) {
         return;
       }
-      this.readyCallbacks.push(callback);
-    },
-  
-    // TODO remove unecessary binds
-    makePromise(handlerManager, name, isRequest, timeout) {
-      return new Promise(_.bind(function(resolve, reject) {
-        let done = false;
-        let fn = _.bind(function(data) {
-          done = true;
-          resolve(data);
-        }, this);
+      definitions.splice(index, 1);
 
-        handlerManager.attachOnce(name, fn);
-        if (isRequest) {
-          this.connection.sendRequest(name);
-        }
+      definitionsByIdentifier = _.indexBy(definitions, 'identifier');
+    },
+  };
+};
+
+// stores handlers by identifier, can auto remove handlers after n calls.
+// callbacks can be passed to this function, they will be called when a given identifier gets its first handler,
+// or when a given identifier removed its last handler
+let newHandlerManager = (firstAddedCallback, lastRemovedCallback) => {
+
+  let handlers = new Map();
+
+  let detachAtIndex = function(identifier, index) {
+    let h =  handlers[identifier];
+    h.splice(index--, 1);
+
+    if (h.length == 0) {
+      handlers[identifier] = undefined;
+      if (lastRemovedCallback) {
+        lastRemovedCallback(identifier);
+      }
+    }
+  };
+
+  return {
+
+    makePromise(identifier, timeout) {
+      return new Promise((resolve, reject) => {
+        let timer;
+        let fn = (data) => {
+          resolve(data);
+          if (timer) {
+            clearTimeout(timer);
+          }
+        };
+
+        this.attachOnce(identifier, fn);
 
         if (!timeout) {
           return;
         }
 
-        // setup timeout cb
-        // TODO cancel the timeout instead of relying on done
-        setTimeout(_.bind(function() {
-          if (done) {
-            return;
-          }
-          handlerManager.detach(name, fn);
+        console.log('timeut', timeout);
+        timer = setTimeout(() => {
+          this.detach(identifier, fn);
           // TODO setup proper error handling wih error codes
-          reject('time out ' + name + ' isRequest: ' + isRequest);
-        }, this), timeout);
+          reject('time out ' + identifier);
+        }.bind(this), timeout);
 
-      }, this));
+      });
     },
 
-    requireDefinitions(names, timeout) {
-      let promises = names.map(function(name) {
-        return this.makePromise(this.definitionHandlers, name, false, timeout);
-      }, this);
-      return Promise.all(promises);
-    },
+    callHandlers(identifier, param) {
+      // Dispatch events to their callbacks
+      if (handlers[identifier]) {
+        let h = handlers[identifier];
 
-    requestValuesForUavs(names, timeout) {
-      let missingDefs = names.reduce(function(current, name) {
-        if (definitionsStore.getDefinitionByName(name)) {
-          return current;
+        for (let i = 0; i < h.length; i++) {
+          let callback  = h[i][0];
+          let callCount = h[i][1];
+
+          if (callCount > 0) {  // it's not a permanent callback
+            if (--h[i][1] == 0) { // did it consumed all its allowed calls ?
+              console.log('Detaching consumed callback from ' + identifier);
+              detachAtIndex(identifier, i);
+            }
+          }
+          callback(param);
         }
-        return current.concat(name);
-      }, []);
-
-      let promises = _.bind(function() {
-        return names.map(function(name) {
-          return this.makePromise(this.updateHandlers, name, true, timeout);
-        }, this);
-      }, this);
-
-      if (missingDefs.length) {
-        return this.requireDefinitions(missingDefs).then(function(){return Promise.all(promises())});
       }
-      return Promise.all(promises());
+    },
+
+    registeredIdentifiers() {
+      return _.keys(handlers);
+    },
+
+    attach(identifier, callback, callCount) {
+      if (callCount == undefined)
+        callCount = -1;
+
+      if (handlers[identifier] === undefined) {
+        handlers[identifier] = [];
+
+        if (firstAddedCallback) {
+          firstAddedCallback(identifier);
+        }
+      }
+      handlers[identifier].push([callback, callCount]);
+    },
+
+    detach(identifier, callback) {
+      if (handlers[identifier]) {
+        let h = handlers[identifier];
+
+        for (let i = 0; i < h.length; i++) {
+          let cb  = h[i][0];
+          if (cb == callback) {
+            detachAtIndex(identifier, i);
+          }
+        }
+      }
+    },
+
+    detachAll() {
+      for(let identifier of handlers.keys()) {
+        for(let i = 0; i < handlers[identifier].length; i++) {
+          detachAtIndex(identifier, i);
+        }
+      }
+    },
+
+    attachOnce(identifier, callback) {
+      this.attach(identifier, callback, 1);
+    },
+
+    each(func) {
+      _.forEach(handlers, func);
     }
+  }
+};
 
+// Abstracts a websocket to send javascript objects as skybot JSON protocol
+let newRotondeConnection = function(url, ready, onmessage) {
+  let connected = false;
+  let socket = new WebSocket(url);
+
+  socket.onmessage = onmessage;
+
+  const PACKET_TYPES = {
+    ACTION: 'action',
+    EVENT: 'event',
+    DEFINITION: 'def',
+    UNDEFINITION: 'undef',
+    SUBSCRIBE: 'sub',
+    UNSUBSCRIBE: 'unsub'
+  }
+
+  socket.onopen = (event) => {
+    connected = true;
+    ready();
+  };
+
+  return {
+    PACKET_TYPES,
+
+    isConnected() {
+      return connected;
+    },
+
+    sendEvent(identifier, data) {
+      socket.send(JSON.stringify({
+        type: PACKET_TYPES.EVENT,
+        payload: {
+          identifier,
+          data,
+        },
+      }));
+    },
+
+    sendAction(identifier, data) {
+      socket.send(JSON.stringify({
+        type: PACKET_TYPES.ACTION,
+        payload: {
+          identifier,
+          data,
+        },
+      }));
+    },
+
+    sendDefinition(definition) {
+      socket.send(JSON.stringify({
+        type: PACKET_TYPES.DEFINITION,
+        payload: definition,
+      }));
+    },
+
+    sendDefinition(unDefinition) {
+      socket.send(JSON.stringify({
+        type: PACKET_TYPES.UNDEFINITION,
+        payload: unDefinition,
+      }));
+    },
+
+    sendSubscribe(identifier) {
+      socket.send(JSON.stringify({
+        type: PACKET_TYPES.SUBSCRIBE,
+        payload: {
+          identifier,
+        },
+      }));
+    },
+
+    sendUnsubscribe(identifier) {
+      socket.send(JSON.stringify({
+        type: PACKET_TYPES.UNSUBSCRIBE,
+        payload: {
+          identifier,
+        },
+      }));
+    }
+  }
+}
+
+
+module.exports = (url) => {
+
+  let connection;
+
+  let localDefinitions = {action: newDefinitionsStore(), event: newDefinitionsStore()};
+  let remoteDefinitions = {action: newDefinitionsStore(), event: newDefinitionsStore()};
+
+  let searchDefinitions = (definitionsStore, identifier) => {
+    return _.compact([definitionsStore['action'].getDefinition(identifier), definitionsStore['event'].getDefinition(identifier)]);
+  };
+
+  let eventHandlers = newHandlerManager((identifier) => {
+    if (isConnected()) {
+      connection.sendSubscribe(identifier);
+    }
+  }, (identifier) => {
+    if (isConnected()) {
+      connection.sendUnsubscribe(identifier);
+    }
   });
+  let actionHandlers = newHandlerManager(() => {}, () => {});
+  let definitionHandlers = newHandlerManager(() => {}, () => {});
+  let unDefinitionHandlers = newHandlerManager(() => {}, () => {});
 
-  return client;
+  let readyCallbacks = [];
+
+  let isConnected = () => {
+    return connection && connection.isConnected();
+  };
+
+  let connect = () => {
+    console.log('pouet');
+    connection = newRotondeConnection(url, () => {
+      _.forEach(readyCallbacks, (readyCallback) => {
+        readyCallback();
+      });
+
+      // send subsribe for all already registered updateHandlers
+      eventHandlers.each((identifier) => {
+        connection.sendSubscribe(identifier);
+      });
+    }, handleMessage);
+  };
+
+  let handleMessage = (event) => {
+    let packet = JSON.parse(event.data);
+
+    if (packet.type == connection.PACKET_TYPES.EVENT) {
+      let event = packet.payload;
+      let identifier = event.identifier;
+
+      console.log('received event: ' + identifier);
+      eventHandlers.callHandlers(identifier, event);
+    } else if (packet.type == connection.PACKET_TYPES.ACTION) {
+      let action = packet.payload;
+      let identifier = action.identifier;
+
+      console.log('received action: ' + identifier);
+      actionHandlers.callHandlers(identifier, request);
+    } else if (packet.type == connection.PACKET_TYPES.DEFINITION) {
+      let definition = packet.payload;
+
+      console.log('received definition: ' + definition.identifier + ' ' + definition.type);
+      remoteDefinitions[definition.type].addDefinition(definition);
+      definitionHandlers.callHandlers(definition.identifier, definition);
+
+      if (definition.type == 'event') {
+        // if there were registered update handlers, we send a subscribe
+        if (_.contains(eventHandlers.registeredIdentifiers(), definition.identifier)) {
+          connection.sendSubscribe(definition.identifier);
+        }
+      }
+    } else if (packet.type == connection.PACKET_TYPES.UNDEFINITION) {
+      let unDefinition = packet.payload;
+
+      console.log('received unDefinition: ' + unDefinition.identifier + ' ' + definition.type);
+      remoteDefinitions[definition.type].removeDefinition(unDefinition.identifier);
+      unDefinitionHandlers.callHandlers(unDefinition.identifier, unDefinition);
+
+      // if there were registered update handlers, we send a subscribe
+      if (_.contains(updateHandlers.registeredIdentifiers(), unDefinition.identifier)) {
+        connection.sendSubscribe(unDefinition.identifier);
+      }
+    }
+  };
+
+  let onReady = (callback) => {
+    if (isConnected()) {
+      callback();
+      return;
+    }
+    readyCallbacks.push(callback);
+  };
+
+  let requireDefinitions = (identifiers, timeout) => {
+    let promises = identifiers.map((identifier) => {
+      return definitionHandlers.makePromise(identifier, timeout);
+    });
+    return Promise.all(promises);
+  };
+
+  let bootstrap = (actions, events, timeout) => {
+    let missingDefs = _.uniq(_.union(_.keys(actions), events).reduce((current, identifier) => {
+      if (searchDefinitions(remoteDefinitions, identifier).length > 0) {
+        return current;
+      }
+      current.push(identifier);
+      return current;
+    }, []));
+
+    let promises = () => events.map((identifier) => {
+      _.forEach(actions, (action, identifier) => {
+        connection.sendAction(identifier, action);
+      });
+      return eventHandlers.makePromise(identifier, timeout);
+    });
+
+    if (missingDefs.length) {
+      return requireDefinitions(missingDefs, timeout).then(() => Promise.all(promises()));
+    }
+    return Promise.all(promises());
+  };
+
+  return {
+    getRemoteDefinition: (type, identifier) => remoteDefinitions[type].getDefinition(identifier),
+    getLocalDefinition: (type, identifier) => localDefinitions[type].getDefinition(identifier),
+    isConnected,
+    connect,
+    onReady,
+    requireDefinitions,
+    bootstrap,
+  };
 };
