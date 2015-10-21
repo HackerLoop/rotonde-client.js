@@ -27,7 +27,7 @@ client.addLocalDefinition('action', 'MY_ACTION', [
 ]);
 
 client.onReady(() => {
-  client.bootstrap({testaction}, ['testevent'], 1000).then(() => {
+  client.bootstrap({testaction}, ['testevent'], [], 1000).then(() => {
     console.log('onready');
   }, (error) => {
     console.log('error', error);
