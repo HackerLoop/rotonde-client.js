@@ -13,11 +13,25 @@ let testaction = {
   },
 };
 
+client.addLocalDefinition('action', 'MY_ACTION', [
+  {
+    name: 'field1',
+    type: 'number',
+    unit: 'pouet',
+  },
+  {
+    name: 'field2',
+    type: 'string',
+    unit: 'toto',
+  },
+]);
+
 client.onReady(() => {
   client.bootstrap({testaction}, ['testevent'], 1000).then(() => {
     console.log('onready');
   }, (error) => {
     console.log('error', error);
+    client.removeLocalDefinition('action', 'MY_ACTION');
   });
 });
 

@@ -13,6 +13,10 @@ let newDefinitionsStore = () => {
   let definitionsByIdentifier = {};
 
   return {
+    forEach(fn) {
+      _.forEach(definitions, fn);
+    },
+
     getDefinition(identifier) {
       let definition = definitionsByIdentifier[identifier];
 
@@ -40,7 +44,7 @@ let newDefinitionsStore = () => {
     },
 
     removeDefinition(identifier) {
-      let index = _.indexOf(definitions, d);
+      let index = _.indexOf(definitions, identifier);
       if (index < 0) {
         return;
       }
@@ -221,7 +225,7 @@ let newRotondeConnection = function(url, ready, onmessage) {
       }));
     },
 
-    sendDefinition(unDefinition) {
+    sendUnDefinition(unDefinition) {
       socket.send(JSON.stringify({
         type: PACKET_TYPES.UNDEFINITION,
         payload: unDefinition,
@@ -279,8 +283,33 @@ module.exports = (url) => {
     return connection && connection.isConnected();
   };
 
+  let getRemoteDefinition = (type, identifier) => remoteDefinitions[type].getDefinition(identifier);
+  let getLocalDefinition = (type, identifier) => localDefinitions[type].getDefinition(identifier);;
+
+  let addLocalDefinition = (type, identifier, fields) => {
+    let definition = {
+      identifier,
+      type,
+      fields,
+    };
+    localDefinitions[type].addDefinition(definition);
+    if (isConnected()) {
+      connection.sendDefinition(definition);
+    }
+  };
+
+  let removeLocalDefinition = (type, identifier) => {
+    let definition = localDefinitions[type].getDefinition(identifier);
+    if (!definition) {
+      return;
+    }
+    localDefinitions[type].removeDefinition(identifier);
+    if (isConnected()) {
+      connection.sendUnDefinition(definition);
+    }
+  };
+
   let connect = () => {
-    console.log('pouet');
     connection = newRotondeConnection(url, () => {
       _.forEach(readyCallbacks, (readyCallback) => {
         readyCallback();
@@ -289,6 +318,13 @@ module.exports = (url) => {
       // send subsribe for all already registered updateHandlers
       eventHandlers.each((identifier) => {
         connection.sendSubscribe(identifier);
+      });
+
+      // send local definitions
+      _.forEach(['action', 'event'], (type) => {
+        localDefinitions[type].forEach((definition) => {
+          connection.sendDefinition(definition);
+        })
       });
     }, handleMessage);
   };
@@ -373,11 +409,16 @@ module.exports = (url) => {
   };
 
   return {
+    addLocalDefinition,
+    removeLocalDefinition,
+
     eventHandlers,
     actionHandlers,
     definitionHandlers,
-    getRemoteDefinition: (type, identifier) => remoteDefinitions[type].getDefinition(identifier),
-    getLocalDefinition: (type, identifier) => localDefinitions[type].getDefinition(identifier),
+    unDefinitionHandlers,
+
+    getRemoteDefinition,
+    getLocalDefinition,
     isConnected,
     connect,
     onReady,
