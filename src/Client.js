@@ -374,6 +374,9 @@ module.exports = (url) => {
   };
 
   return {
+    eventHandlers,
+    actionHandlers,
+    definitionHandlers,
     getRemoteDefinition: (type, identifier) => remoteDefinitions[type].getDefinition(identifier),
     getLocalDefinition: (type, identifier) => localDefinitions[type].getDefinition(identifier),
     isConnected,
