@@ -256,6 +256,6 @@ client.connect();
 
 # Contributing 
 
-![](https://d2v4zi8pl64nxt.cloudfront.net/1362775331_b8c6b6e89781c85fee638dffe341ff64.jpg)
+Yes please.
 
-Everything is subject to change at this point !
+![](https://d2v4zi8pl64nxt.cloudfront.net/1362775331_b8c6b6e89781c85fee638dffe341ff64.jpg)
