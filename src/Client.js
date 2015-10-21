@@ -386,8 +386,8 @@ module.exports = (url) => {
     return Promise.all(promises);
   };
 
-  let bootstrap = (actions, events, timeout) => {
-    let missingDefs = _.uniq(_.union(_.keys(actions), events).reduce((current, identifier) => {
+  let bootstrap = (actions, events, defs, timeout) => {
+    let missingDefs = _.uniq(_.union(_.keys(actions), events, defs).reduce((current, identifier) => {
       if (searchDefinitions(remoteDefinitions, identifier).length > 0) {
         return current;
       }
