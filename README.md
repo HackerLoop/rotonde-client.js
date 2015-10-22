@@ -107,7 +107,7 @@ The `bootstrap` method takes four arguments:
 For this tutorial, we will have a look at the serial module [serial-port-json-server](https://github.com/HackerLoop/serial-port-json-server).
 
 This module lets control the serial ports of your device, it has many
-events and actions, but the one that iterest us are
+events and actions, but the ones that interest us are
 - `SERIAL_OPEN`: the action that opens a serial port
 - `SERIAL_OUTPUT`: the event that reports the result of opening the port
 - `SERIAL_PORTMESSAGE`: the event that is sent when something is
