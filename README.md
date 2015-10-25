@@ -1,10 +1,10 @@
 ## Introduction
 
-rotonde-client.js is the javascript abstraction above [rotonde](https://github.com/HackerLoop/rotonde-client.js).
+rotonde-client.js is the javascript abstraction above [rotonde](https://github.com/HackerLoop/rotonde).
 Using abstractions above rotonde is totally optionnal, this project is
 just here to add a layer of comfort.
 
-Please first read the [rotonde](https://github.com/HackerLoop/rotonde-client.js) documentation.
+Please first read the [rotonde](https://github.com/HackerLoop/rotonde) documentation.
 
 # Tutorial #1
 
@@ -98,7 +98,7 @@ The `bootstrap` method takes four arguments:
   an action identifier, and the value of the entry is the data for the
   action.
 - `events`: a list of event identifiers that should be available, and received in
-  response (or not) to the actions sent.
+  response to the actions sent; `events` can also be spontaneous.
 - `defs`: a list of additional actions or events identifiers that should
   be received before starting.
 - `timeout`: ignored is 0, it specifies how long you can wait to receive
