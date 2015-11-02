@@ -363,11 +363,6 @@ module.exports = (url) => {
       console.log('received unDefinition: ' + unDefinition.identifier + ' ' + definition.type);
       remoteDefinitions[definition.type].removeDefinition(unDefinition.identifier);
       unDefinitionHandlers.callHandlers(unDefinition.identifier, unDefinition);
-
-      // if there were registered update handlers, we send a subscribe
-      if (_.contains(updateHandlers.registeredIdentifiers(), unDefinition.identifier)) {
-        connection.sendSubscribe(unDefinition.identifier);
-      }
     }
   };
 
