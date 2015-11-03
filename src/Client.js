@@ -407,8 +407,8 @@ module.exports = (url) => {
     addLocalDefinition,
     removeLocalDefinition,
 
-    sendEvent: (identifier, data) => client.sendEvent(identifier, data),
-    sendAction: (identifier, data) => client.sendAction(identifier, data),
+    sendEvent: (identifier, data) => connection.sendEvent(identifier, data),
+    sendAction: (identifier, data) => connection.sendAction(identifier, data),
 
     eventHandlers,
     actionHandlers,
