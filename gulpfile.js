@@ -12,7 +12,7 @@ var reload = browserSync.reload;
 var config = {
   entryFile: './index.js',
   outputDir: './dist/',
-  outputFile: 'skybot-client.js'
+  outputFile: 'rotonde-client.js'
 };
 
 // clean the output directory
