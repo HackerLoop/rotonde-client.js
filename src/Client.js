@@ -360,7 +360,7 @@ module.exports = (url) => {
     } else if (packet.type == connection.PACKET_TYPES.UNDEFINITION) {
       let unDefinition = packet.payload;
 
-      console.log('received unDefinition: ' + unDefinition.identifier + ' ' + definition.type);
+      console.log('received unDefinition: ' + unDefinition.identifier + ' ' + unDefinition.type);
       remoteDefinitions[definition.type].removeDefinition(unDefinition.identifier);
       unDefinitionHandlers.callHandlers(unDefinition.identifier, unDefinition);
     }
