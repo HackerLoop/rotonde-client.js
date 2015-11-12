@@ -390,12 +390,15 @@ module.exports = (url) => {
       return current;
     }, []));
 
-    let promises = () => events.map((identifier) => {
+    let promises = () => {
+      let eventPromises = events.map((identifier) => {
+        return eventHandlers.makePromise(identifier, timeout);
+      });
       _.forEach(actions, (action, identifier) => {
         connection.sendAction(identifier, action);
       });
-      return eventHandlers.makePromise(identifier, timeout);
-    });
+      return eventPromises;
+    };
 
     if (missingDefs.length) {
       return requireDefinitions(missingDefs, timeout).then(() => Promise.all(promises()));
