@@ -361,7 +361,7 @@ module.exports = (url) => {
       let unDefinition = packet.payload;
 
       console.log('received unDefinition: ' + unDefinition.identifier + ' ' + unDefinition.type);
-      remoteDefinitions[definition.type].removeDefinition(unDefinition.identifier);
+      remoteDefinitions[unDefinition.type].removeDefinition(unDefinition.identifier);
       unDefinitionHandlers.callHandlers(unDefinition.identifier, unDefinition);
     }
   };
