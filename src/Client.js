@@ -343,7 +343,7 @@ module.exports = (url) => {
       let identifier = action.identifier;
 
       console.log('received action: ' + identifier);
-      actionHandlers.callHandlers(identifier, request);
+      actionHandlers.callHandlers(identifier, action);
     } else if (packet.type == connection.PACKET_TYPES.DEFINITION) {
       let definition = packet.payload;
 
