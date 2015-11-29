@@ -165,7 +165,7 @@ let newHandlerManager = (firstAddedCallback, lastRemovedCallback) => {
     },
 
     each(func) {
-      _.forEach(handlers, func);
+      _.forEach(_.keys(handlers), func);
     }
   }
 };
