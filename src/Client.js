@@ -92,11 +92,11 @@ let newHandlerManager = (firstAddedCallback, lastRemovedCallback) => {
           return;
         }
 
-        timer = setTimeout(() => {
+        timer = setTimeout(_.bind(() => {
           this.detach(identifier, fn);
           // TODO setup proper error handling wih error codes
           reject('time out ' + identifier);
-        }.bind(this), timeout);
+        }, this), timeout);
 
       });
     },
