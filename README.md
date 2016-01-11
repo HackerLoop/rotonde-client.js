@@ -14,7 +14,7 @@ compiled javascript will be present in the dist/ directory.
 
 Lets write a simple program using rotonde-client.js:
 
-```
+```js
 
 'use strict';
 
@@ -33,21 +33,21 @@ client.connect();
 This is the simplest and most useless module.
 Lets review is line by line.
 
-```
+```js
 let newClient = require('rotonde-client/src/Client');
 ```
 
 the node version is in src/Client, when you require it, you end up with
 a function that creates clients.
 
-```
+```js
 let client = newClient('ws://localhost:4224/');
 ```
 
 calling the newClient function creates a client, and provides the url of
 the rotonde server, this call doesn't start the connection.
 
-```
+```js
 client.onReady(() => {
   console.log('connected to rotonde !!!');
 });
@@ -59,7 +59,7 @@ established, this is the function where everything starts.
 We are now ready to start the connection to rotonde with the `connect`
 method.
 
-```
+```js
 client.connect();
 ```
 
@@ -121,7 +121,7 @@ proceed as follows:
 
 This steps can be done in one line thanks to the `bootstrap` method:
 
-```
+```js
 client.bootstrap({'SERIAL_OPEN': openaction}, ['SERIAL_OUTPUT'], ['SERIAL_PORTMESSAGE'])
 ```
 
@@ -134,7 +134,7 @@ This method returns a Promise, if you don't know what it is, read
 Now that you know what a promise is, you know that the next thing to do
 it put the resolve and reject callbacks for this promise:
 
-```
+```js
 // this is the body of the SERIAL_OPEN action
 let openaction = {
   port: '/dev/ttyAMA0',
@@ -161,7 +161,7 @@ connection (the `SERIAL_OPEN` action that was first sent).
 
 It is an event so its structure is as follows:
 
-```
+```js
 {
   identifier: "SERIAL_OUTPUT",
   data: {
@@ -176,7 +176,7 @@ This event's `data` has a `Cmd` field, when the `SERIAL_OPEN` succeeded,
 its value will be `Open`.
 We can now add the check to the code we wrote:
 
-```
+```js
 let openaction = {
   port: '/dev/ttyAMA0',
   baudrate: 9600,
@@ -205,7 +205,7 @@ it is present on the system before calling the callback.
 subscribing to events is quite easy, you just have to add an handler to
 rotonde-client:
 
-```
+```js
 client.eventHandlers.attach('SERIAL_PORTMESSAGE', (event) => {
   console.log(event);
 });
@@ -224,7 +224,7 @@ browser to have the Chrome/Firefox debugger available.
 
 The final code looks like:
 
-```
+```js
 'use strict';
 
 let newClient = require('rotonde-client/src/Client');
