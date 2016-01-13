@@ -6,8 +6,8 @@ const
   _ = require('lodash');
 
 // stores and indexes definitions
-let newDefinitionsStore = () => {
-  let definitions = [];
+const newDefinitionsStore = () => {
+  const definitions = [];
 
   // definitions indexing
   let definitionsByIdentifier = {};
@@ -18,7 +18,7 @@ let newDefinitionsStore = () => {
     },
 
     getDefinition(identifier) {
-      let definition = definitionsByIdentifier[identifier];
+      const definition = definitionsByIdentifier[identifier];
 
       if (_.isUndefined(definition)) {
         console.log('Unknown Definition Exception -> ' + identifier);
@@ -27,10 +27,10 @@ let newDefinitionsStore = () => {
     },
 
     addDefinition(definition) {
-      let d = definitionsByIdentifier[definition.identifier];
+      const d = definitionsByIdentifier[definition.identifier];
       if (d) {
-        let index = _.indexOf(definitions, d);
-        let fields = _.uniq(_.union(d.fields, definition.fields), function(field) {
+        const index = _.indexOf(definitions, d);
+        const fields = _.uniq(_.union(d.fields, definition.fields), function(field) {
           return field.name;
         });
         definition.fields = fields;
@@ -44,7 +44,7 @@ let newDefinitionsStore = () => {
     },
 
     removeDefinition(identifier) {
-      let index = _.indexOf(definitions, identifier);
+      const index = _.indexOf(definitions, identifier);
       if (index < 0) {
         return;
       }
@@ -58,12 +58,12 @@ let newDefinitionsStore = () => {
 // stores handlers by identifier, can auto remove handlers after n calls.
 // callbacks can be passed to this function, they will be called when a given identifier gets its first handler,
 // or when a given identifier removed its last handler
-let newHandlerManager = (firstAddedCallback, lastRemovedCallback) => {
+const newHandlerManager = (firstAddedCallback, lastRemovedCallback) => {
 
-  let handlers = new Map();
+  const handlers = new Map();
 
-  let detachAtIndex = function(identifier, index) {
-    let h =  handlers[identifier];
+  const detachAtIndex = function(identifier, index) {
+    const h =  handlers[identifier];
     h.splice(index--, 1);
 
     if (h.length == 0) {
@@ -79,7 +79,7 @@ let newHandlerManager = (firstAddedCallback, lastRemovedCallback) => {
     makePromise(identifier, timeout) {
       return new Promise((resolve, reject) => {
         let timer;
-        let fn = (data) => {
+        const fn = (data) => {
           resolve(data);
           if (timer) {
             clearTimeout(timer);
@@ -103,12 +103,10 @@ let newHandlerManager = (firstAddedCallback, lastRemovedCallback) => {
 
     callHandlers(identifier, param) {
       // Dispatch events to their callbacks
-      if (handlers[identifier]) {
-        let h = handlers[identifier];
-
-        for (let i = 0; i < h.length; i++) {
-          let callback  = h[i][0];
-          let callCount = h[i][1];
+      const callHandlers = (h) => {
+        for (const i = 0; i < h.length; i++) {
+          const callback  = h[i][0];
+          const callCount = h[i][1];
 
           if (callCount > 0) {  // it's not a permanent callback
             if (--h[i][1] == 0) { // did it consumed all its allowed calls ?
@@ -118,6 +116,12 @@ let newHandlerManager = (firstAddedCallback, lastRemovedCallback) => {
           }
           callback(param);
         }
+      }
+      if (handlers[identifier]) {
+        callHandlers(handlers[identifier]);
+      }
+      if (handlers['*']) {
+        callHandlers(handlers['*']);
       }
     },
 
@@ -141,10 +145,10 @@ let newHandlerManager = (firstAddedCallback, lastRemovedCallback) => {
 
     detach(identifier, callback) {
       if (handlers[identifier]) {
-        let h = handlers[identifier];
+        const h = handlers[identifier];
 
-        for (let i = 0; i < h.length; i++) {
-          let cb  = h[i][0];
+        for (const i = 0; i < h.length; i++) {
+          const cb  = h[i][0];
           if (cb == callback) {
             detachAtIndex(identifier, i);
           }
@@ -153,8 +157,8 @@ let newHandlerManager = (firstAddedCallback, lastRemovedCallback) => {
     },
 
     detachAll() {
-      for(let identifier of handlers.keys()) {
-        for(let i = 0; i < handlers[identifier].length; i++) {
+      for(const identifier of handlers.keys()) {
+        for(const i = 0; i < handlers[identifier].length; i++) {
           detachAtIndex(identifier, i);
         }
       }
@@ -171,9 +175,9 @@ let newHandlerManager = (firstAddedCallback, lastRemovedCallback) => {
 };
 
 // Abstracts a websocket to send javascript objects as skybot JSON protocol
-let newRotondeConnection = function(url, ready, onmessage) {
+const newRotondeConnection = function(url, ready, onmessage) {
   let connected = false;
-  let socket = new WebSocket(url);
+  const socket = new WebSocket(url);
 
   socket.onmessage = onmessage;
 
@@ -257,14 +261,14 @@ module.exports = (url) => {
 
   let connection;
 
-  let localDefinitions = {action: newDefinitionsStore(), event: newDefinitionsStore()};
-  let remoteDefinitions = {action: newDefinitionsStore(), event: newDefinitionsStore()};
+  const localDefinitions = {action: newDefinitionsStore(), event: newDefinitionsStore()};
+  const remoteDefinitions = {action: newDefinitionsStore(), event: newDefinitionsStore()};
 
-  let searchDefinitions = (definitionsStore, identifier) => {
+  const searchDefinitions = (definitionsStore, identifier) => {
     return _.compact([definitionsStore['action'].getDefinition(identifier), definitionsStore['event'].getDefinition(identifier)]);
   };
 
-  let eventHandlers = newHandlerManager((identifier) => {
+  const eventHandlers = newHandlerManager((identifier) => {
     if (isConnected()) {
       connection.sendSubscribe(identifier);
     }
@@ -273,21 +277,21 @@ module.exports = (url) => {
       connection.sendUnsubscribe(identifier);
     }
   });
-  let actionHandlers = newHandlerManager(() => {}, () => {});
-  let definitionHandlers = newHandlerManager(() => {}, () => {});
-  let unDefinitionHandlers = newHandlerManager(() => {}, () => {});
+  const actionHandlers = newHandlerManager(() => {}, () => {});
+  const definitionHandlers = newHandlerManager(() => {}, () => {});
+  const unDefinitionHandlers = newHandlerManager(() => {}, () => {});
 
-  let readyCallbacks = [];
+  const readyCallbacks = [];
 
-  let isConnected = () => {
+  const isConnected = () => {
     return connection && connection.isConnected();
   };
 
-  let getRemoteDefinition = (type, identifier) => remoteDefinitions[type].getDefinition(identifier);
-  let getLocalDefinition = (type, identifier) => localDefinitions[type].getDefinition(identifier);;
+  const getRemoteDefinition = (type, identifier) => remoteDefinitions[type].getDefinition(identifier);
+  const getLocalDefinition = (type, identifier) => localDefinitions[type].getDefinition(identifier);;
 
-  let addLocalDefinition = (type, identifier, fields) => {
-    let definition = {
+  const addLocalDefinition = (type, identifier, fields) => {
+    const definition = {
       identifier,
       type,
       fields,
@@ -298,8 +302,8 @@ module.exports = (url) => {
     }
   };
 
-  let removeLocalDefinition = (type, identifier) => {
-    let definition = localDefinitions[type].getDefinition(identifier);
+  const removeLocalDefinition = (type, identifier) => {
+    const definition = localDefinitions[type].getDefinition(identifier);
     if (!definition) {
       return;
     }
@@ -309,7 +313,7 @@ module.exports = (url) => {
     }
   };
 
-  let connect = () => {
+  const connect = () => {
     connection = newRotondeConnection(url, () => {
       _.forEach(readyCallbacks, (readyCallback) => {
         readyCallback();
@@ -329,23 +333,23 @@ module.exports = (url) => {
     }, handleMessage);
   };
 
-  let handleMessage = (event) => {
-    let packet = JSON.parse(event.data);
+  const handleMessage = (event) => {
+    const packet = JSON.parse(event.data);
 
     if (packet.type == connection.PACKET_TYPES.EVENT) {
-      let event = packet.payload;
-      let identifier = event.identifier;
+      const event = packet.payload;
+      const identifier = event.identifier;
 
       console.log('received event: ' + identifier);
       eventHandlers.callHandlers(identifier, event);
     } else if (packet.type == connection.PACKET_TYPES.ACTION) {
-      let action = packet.payload;
-      let identifier = action.identifier;
+      const action = packet.payload;
+      const identifier = action.identifier;
 
       console.log('received action: ' + identifier);
       actionHandlers.callHandlers(identifier, action);
     } else if (packet.type == connection.PACKET_TYPES.DEFINITION) {
-      let definition = packet.payload;
+      const definition = packet.payload;
 
       console.log('received definition: ' + definition.identifier + ' ' + definition.type);
       remoteDefinitions[definition.type].addDefinition(definition);
@@ -358,7 +362,7 @@ module.exports = (url) => {
         }
       }
     } else if (packet.type == connection.PACKET_TYPES.UNDEFINITION) {
-      let unDefinition = packet.payload;
+      const unDefinition = packet.payload;
 
       console.log('received unDefinition: ' + unDefinition.identifier + ' ' + unDefinition.type);
       remoteDefinitions[unDefinition.type].removeDefinition(unDefinition.identifier);
@@ -366,7 +370,7 @@ module.exports = (url) => {
     }
   };
 
-  let onReady = (callback) => {
+  const onReady = (callback) => {
     if (isConnected()) {
       callback();
       return;
@@ -374,15 +378,15 @@ module.exports = (url) => {
     readyCallbacks.push(callback);
   };
 
-  let requireDefinitions = (identifiers, timeout) => {
-    let promises = identifiers.map((identifier) => {
+  const requireDefinitions = (identifiers, timeout) => {
+    const promises = identifiers.map((identifier) => {
       return definitionHandlers.makePromise(identifier, timeout);
     });
     return Promise.all(promises);
   };
 
-  let bootstrap = (actions, events, defs, timeout) => {
-    let missingDefs = _.uniq(_.union(_.keys(actions), events, defs).reduce((current, identifier) => {
+  const bootstrap = (actions, events, defs, timeout) => {
+    const missingDefs = _.uniq(_.union(_.keys(actions), events, defs).reduce((current, identifier) => {
       if (searchDefinitions(remoteDefinitions, identifier).length > 0) {
         return current;
       }
@@ -390,8 +394,8 @@ module.exports = (url) => {
       return current;
     }, []));
 
-    let promises = () => {
-      let eventPromises = events.map((identifier) => {
+    const promises = () => {
+      const eventPromises = events.map((identifier) => {
         return eventHandlers.makePromise(identifier, timeout);
       });
       _.forEach(actions, (action, identifier) => {
