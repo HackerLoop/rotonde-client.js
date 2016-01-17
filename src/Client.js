@@ -104,7 +104,7 @@ const newHandlerManager = (firstAddedCallback, lastRemovedCallback) => {
     callHandlers(identifier, param) {
       // Dispatch events to their callbacks
       const callHandlers = (h) => {
-        for (const i = 0; i < h.length; i++) {
+        for (let i = 0; i < h.length; i++) {
           const callback  = h[i][0];
           const callCount = h[i][1];
 
@@ -147,7 +147,7 @@ const newHandlerManager = (firstAddedCallback, lastRemovedCallback) => {
       if (handlers[identifier]) {
         const h = handlers[identifier];
 
-        for (const i = 0; i < h.length; i++) {
+        for (let i = 0; i < h.length; i++) {
           const cb  = h[i][0];
           if (cb == callback) {
             detachAtIndex(identifier, i);
@@ -157,8 +157,8 @@ const newHandlerManager = (firstAddedCallback, lastRemovedCallback) => {
     },
 
     detachAll() {
-      for(const identifier of handlers.keys()) {
-        for(const i = 0; i < handlers[identifier].length; i++) {
+      for(let identifier of handlers.keys()) {
+        for(let i = 0; i < handlers[identifier].length; i++) {
           detachAtIndex(identifier, i);
         }
       }
