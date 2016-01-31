@@ -269,10 +269,16 @@ module.exports = (url) => {
   };
 
   const eventHandlers = newHandlerManager((identifier) => {
+    if (identifier == '*') {
+      return;
+    }
     if (isConnected()) {
       connection.sendSubscribe(identifier);
     }
   }, (identifier) => {
+    if (identifier == '*') {
+      return;
+    }
     if (isConnected()) {
       connection.sendUnsubscribe(identifier);
     }
