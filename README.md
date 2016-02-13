@@ -18,7 +18,7 @@ Lets write a simple program using rotonde-client.js:
 
 'use strict';
 
-let newClient = require('rotonde-client/src/Client');
+let newClient = require('rotonde-client/node/rotonde-client');
 
 let client = newClient('ws://localhost:4224/');
 
@@ -34,10 +34,10 @@ This is the simplest and most useless module.
 Lets review is line by line.
 
 ```js
-let newClient = require('rotonde-client/src/Client');
+let newClient = require('rotonde-client/node/rotonde-client');
 ```
 
-the node version is in src/Client, when you require it, you end up with
+the node version is in node/rotonde-client, when you require it, you end up with
 a function that creates clients.
 
 ```js
@@ -227,7 +227,7 @@ The final code looks like:
 ```js
 'use strict';
 
-let newClient = require('rotonde-client/src/Client');
+let newClient = require('rotonde-client/node/rotonde-client');
 
 let client = newClient('ws://192.168.2.9:4224/');
 
