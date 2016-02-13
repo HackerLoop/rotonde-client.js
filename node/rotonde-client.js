@@ -195,6 +195,10 @@ const newRotondeConnection = function(url, ready, onmessage) {
     ready();
   };
 
+  socket.onerror = function() {
+    console.log('Connection failed.');
+  };
+
   return {
     PACKET_TYPES,
 

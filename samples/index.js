@@ -1,6 +1,6 @@
 'use strict';
 
-let newClient = require('../src/Client');
+let newClient = require('../node/rotonde-client');
 
 let client = newClient('ws://localhost:4224/');
 

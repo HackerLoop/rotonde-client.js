@@ -206,6 +206,10 @@ var newRotondeConnection = function newRotondeConnection(url, ready, onmessage) 
     ready();
   };
 
+  socket.onerror = function () {
+    console.log('Connection failed.');
+  };
+
   return {
     PACKET_TYPES: PACKET_TYPES,
 
