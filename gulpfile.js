@@ -6,12 +6,10 @@ var babelify = require('babelify');
 var rimraf = require('rimraf');
 var source = require('vinyl-source-stream');
 var _ = require('lodash');
-var browserSync = require('browser-sync');
-var reload = browserSync.reload;
 
 var config = {
-  entryFile: './index.js',
-  outputDir: './dist/',
+  entryFile: './browser-index.js',
+  outputDir: './browser/',
   outputFile: 'rotonde-client.js'
 };
 
@@ -34,8 +32,7 @@ function bundle() {
     .bundle()
     .on('error', function(err) { console.log('Error: ' + err.message); })
     .pipe(source(config.outputFile))
-    .pipe(gulp.dest(config.outputDir))
-    .pipe(reload({ stream: true }));
+    .pipe(gulp.dest(config.outputDir));
 }
 
 gulp.task('build-persistent', ['clean'], function() {
@@ -47,23 +44,7 @@ gulp.task('build', ['build-persistent'], function() {
 });
 
 gulp.task('watch', ['build-persistent'], function() {
-
-  browserSync({
-    server: {
-      baseDir: './'
-    }
-  });
-
   getBundler().on('update', function() {
     gulp.start('build-persistent')
-  });
-});
-
-// WEB SERVER
-gulp.task('serve', function () {
-  browserSync({
-    server: {
-      baseDir: './'
-    }
   });
 });
