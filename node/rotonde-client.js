@@ -427,6 +427,8 @@ module.exports = (url) => {
 
     sendEvent: (identifier, data) => connection.sendEvent(identifier, data),
     sendAction: (identifier, data) => connection.sendAction(identifier, data),
+    sendSubscribe: (identifier) => connection.sendSubscribe(identifier),
+    sendUnsubscribe: (identifier) => connection.sendUnsubscribe(identifier),
 
     eventHandlers,
     actionHandlers,
