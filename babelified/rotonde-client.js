@@ -308,11 +308,12 @@ module.exports = function (url) {
     return localDefinitions[type].getDefinition(identifier);
   };;
 
-  var addLocalDefinition = function addLocalDefinition(type, identifier, fields) {
+  var addLocalDefinition = function addLocalDefinition(type, identifier, fields, isarray) {
     var definition = {
       identifier: identifier,
       type: type,
-      fields: fields
+      fields: fields,
+      isarray: isarray || false
     };
     localDefinitions[type].addDefinition(definition);
     if (isConnected()) {

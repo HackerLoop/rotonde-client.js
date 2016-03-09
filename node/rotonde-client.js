@@ -300,11 +300,12 @@ module.exports = (url) => {
   const getRemoteDefinition = (type, identifier) => remoteDefinitions[type].getDefinition(identifier);
   const getLocalDefinition = (type, identifier) => localDefinitions[type].getDefinition(identifier);;
 
-  const addLocalDefinition = (type, identifier, fields) => {
+  const addLocalDefinition = (type, identifier, fields, isarray) => {
     const definition = {
       identifier,
       type,
       fields,
+      isarray: isarray || false
     };
     localDefinitions[type].addDefinition(definition);
     if (isConnected()) {
