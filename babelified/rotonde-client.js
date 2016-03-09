@@ -441,6 +441,12 @@ module.exports = function (url) {
     sendAction: function sendAction(identifier, data) {
       return connection.sendAction(identifier, data);
     },
+    sendSubscribe: function sendSubscribe(identifier) {
+      return connection.sendSubscribe(identifier);
+    },
+    sendUnsubscribe: function sendUnsubscribe(identifier) {
+      return connection.sendUnsubscribe(identifier);
+    },
 
     eventHandlers: eventHandlers,
     actionHandlers: actionHandlers,
